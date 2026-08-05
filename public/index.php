@@ -54,7 +54,13 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
       <option value="30" selected>30 дней</option>
       <option value="90">90 дней</option>
       <option value="365">365 дней</option>
+      <option value="custom">Свой период...</option>
     </select>
+    <div id="custom-range" style="display:none;align-items:center;gap:6px">
+      <input type="date" id="date-from" title="С">
+      <span class="muted">—</span>
+      <input type="date" id="date-to" title="По">
+    </div>
     <button id="reload" style="background:#fff;color:#111;border-color:#ddd">Обновить</button>
     <button id="delete-site" class="btn-delete" title="Удалить выбранный сайт">Удалить сайт</button>
   </div>
@@ -159,11 +165,33 @@ function updateSnippet(){
   document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '" async><\/script>';
 }
 
+function toISO(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function initCustomDatesIfNeeded(){
+  const fromEl = document.querySelector('#date-from');
+  const toEl = document.querySelector('#date-to');
+  if(!toEl.value){
+    toEl.value = toISO(new Date());
+  }
+  if(!fromEl.value){
+    const d = new Date();
+    d.setDate(d.getDate() - 29);
+    fromEl.value = toISO(d);
+  }
+}
+
 async function loadStats(){
   const error = document.querySelector('#error');
   error.style.display = 'none';
   const site = document.querySelector('#site').value;
-  const days = document.querySelector('#days').value;
+  const daysSelect = document.querySelector('#days');
+  const daysVal = daysSelect.value;
+
   if(!site){
     document.querySelector('#pageviews').textContent='0';
     document.querySelector('#visits').textContent='0';
@@ -173,8 +201,20 @@ async function loadStats(){
     document.querySelector('#referrers').innerHTML='';
     return;
   }
+
+  let url = '/api/stats.php?site=' + encodeURIComponent(site) + '&group=' + currentGroup + '&t=' + Date.now();
+  if(daysVal === 'custom'){
+    initCustomDatesIfNeeded();
+    const from = document.querySelector('#date-from').value;
+    const to = document.querySelector('#date-to').value;
+    if(from) url += '&from=' + encodeURIComponent(from);
+    if(to) url += '&to=' + encodeURIComponent(to);
+  } else {
+    url += '&days=' + encodeURIComponent(daysVal);
+  }
+
   try{
-    const r = await fetch('/api/stats.php?site=' + encodeURIComponent(site) + '&days=' + days + '&group=' + currentGroup + '&t=' + Date.now(), {cache:'no-store'});
+    const r = await fetch(url, {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
@@ -215,7 +255,27 @@ document.querySelector('#site').addEventListener('change', () => {
   loadStats();
 });
 
-document.querySelector('#days').addEventListener('change', loadStats);
+const daysSelect = document.querySelector('#days');
+const customRange = document.querySelector('#custom-range');
+
+daysSelect.addEventListener('change', () => {
+  if(daysSelect.value === 'custom'){
+    customRange.style.display = 'inline-flex';
+    initCustomDatesIfNeeded();
+  } else {
+    customRange.style.display = 'none';
+  }
+  loadStats();
+});
+
+document.querySelector('#date-from').addEventListener('change', () => {
+  if(daysSelect.value === 'custom') loadStats();
+});
+
+document.querySelector('#date-to').addEventListener('change', () => {
+  if(daysSelect.value === 'custom') loadStats();
+});
+
 document.querySelector('#reload').addEventListener('click', loadStats);
 
 document.querySelector('#delete-site').addEventListener('click', async () => {

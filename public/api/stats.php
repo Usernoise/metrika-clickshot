@@ -17,19 +17,53 @@ if (!$site) {
     respond_json(404, ['ok' => false, 'error' => 'Сайт не найден']);
 }
 
-$start = (new DateTimeImmutable('today'))
-    ->modify('-' . ($days - 1) . ' days')
-    ->format('Y-m-d');
+$parseDate = function(?string $d): ?DateTimeImmutable {
+    if (!$d || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $d)) {
+        return null;
+    }
+    $dt = DateTimeImmutable::createFromFormat('Y-m-d', $d);
+    if ($dt && $dt->format('Y-m-d') === $d) {
+        return $dt->setTime(0, 0, 0);
+    }
+    return null;
+};
+
+$fromDate = $parseDate($_GET['from'] ?? null);
+$toDate = $parseDate($_GET['to'] ?? null);
+
+if ($fromDate !== null) {
+    if ($toDate === null) {
+        $toDate = new DateTimeImmutable('today');
+    }
+    if ($fromDate > $toDate) {
+        $tmp = $fromDate;
+        $fromDate = $toDate;
+        $toDate = $tmp;
+    }
+    $diffDays = (int)$fromDate->diff($toDate)->format('%a');
+    if ($diffDays > 1095) {
+        $fromDate = $toDate->modify('-1095 days');
+        $diffDays = 1095;
+    }
+    $days = $diffDays + 1;
+} else {
+    $days = max(1, min(1095, (int)($_GET['days'] ?? 30)));
+    $toDate = new DateTimeImmutable('today');
+    $fromDate = $toDate->modify('-' . ($days - 1) . ' days');
+}
+
+$start = $fromDate->format('Y-m-d');
+$end = $toDate->format('Y-m-d');
 
 $pdo = db();
 
 $stmt = $pdo->prepare(
     'SELECT stat_date, pageviews, visits
      FROM daily_stats
-     WHERE site_id = :site AND stat_date >= :start
+     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
      ORDER BY stat_date'
 );
-$stmt->execute([':site' => $siteId, ':start' => $start]);
+$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
 $rows = $stmt->fetchAll();
 
 $map = [];
@@ -41,10 +75,9 @@ foreach ($rows as $row) {
 }
 
 $dailyMap = [];
-$date = new DateTimeImmutable($start);
-$today = new DateTimeImmutable('today');
+$date = $fromDate;
 
-while ($date <= $today) {
+while ($date <= $toDate) {
     $key = $date->format('Y-m-d');
     $dailyMap[$key] = [
         'pageviews' => $map[$key]['pageviews'] ?? 0,
@@ -101,19 +134,19 @@ if ($groupBy === 'week') {
 $stmt = $pdo->prepare(
     'SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
      FROM page_daily_stats
-     WHERE site_id = :site AND stat_date >= :start
+     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
      GROUP BY path ORDER BY pageviews DESC LIMIT 30'
 );
-$stmt->execute([':site' => $siteId, ':start' => $start]);
+$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
 $pages = $stmt->fetchAll();
 
 $stmt = $pdo->prepare(
     'SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
      FROM referrer_daily_stats
-     WHERE site_id = :site AND stat_date >= :start
+     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
      GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30'
 );
-$stmt->execute([':site' => $siteId, ':start' => $start]);
+$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
 $referrers = $stmt->fetchAll();
 
 $pageviews = array_sum(array_column($dailyMap, 'pageviews'));
@@ -123,6 +156,8 @@ respond_json(200, [
     'ok' => true,
     'site' => ['id' => $siteId, 'name' => $site['name']],
     'period' => $days,
+    'from' => $start,
+    'to' => $end,
     'group' => $groupBy,
     'totals' => [
         'pageviews' => $pageviews,
