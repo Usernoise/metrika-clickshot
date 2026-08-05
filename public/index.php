@@ -11,6 +11,7 @@
 <style>
 .sc-preview{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f7f7f7}.sc-preview-head{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border-bottom:1px solid var(--line);font:10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.sc-preview-stage{position:relative;min-height:175px;padding:18px 12px 12px;display:flex;align-items:flex-end;background:radial-gradient(#ddd .7px,transparent .7px);background-size:10px 10px}.sc-banner{width:100%;border-radius:8px;padding:12px;background:var(--sc-dark,#0a0a0a);color:#fff;box-shadow:0 8px 18px rgba(10,10,10,.16);transition:background .2s ease}.sc-banner-top{display:flex;align-items:center;gap:7px;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase}.sc-banner-mark{width:8px;height:8px;border-radius:50%;background:var(--sc-accent,#c5ff1a);box-shadow:0 0 0 3px color-mix(in srgb,var(--sc-accent,#c5ff1a) 22%,transparent)}.sc-banner p{font-size:11px;line-height:1.4;margin:9px 0 11px;color:#e5e5e5}.sc-banner-actions{display:flex;gap:7px}.sc-banner button{border:0;border-radius:4px;padding:6px 8px;font:500 10px var(--font);background:var(--sc-accent,#c5ff1a);color:var(--sc-accent-text,#0a0a0a)}.sc-banner .sc-link{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:2px}.sc-preview.is-off{opacity:.48}.sc-preview.is-off .sc-preview-stage:after{content:'Включите Slide Cookie для показа баннера';position:absolute;font:10px var(--mono);color:var(--muted)}
 .site-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(10,10,10,.44);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease}.site-modal.is-open{opacity:1}.site-modal-card{width:min(100%,460px);padding:22px;border-radius:12px;background:#fff;box-shadow:0 24px 60px rgba(10,10,10,.22);transform:translateY(10px);transition:transform .22s ease}.site-modal.is-open .site-modal-card{transform:translateY(0)}.site-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.site-modal-head h2{font-size:24px;margin:7px 0 0}.site-modal-close{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted);font-size:21px;line-height:1}.site-modal-card>.muted{margin:14px 0 18px}.modal-field{display:grid;gap:6px;margin:12px 0;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#404040}.modal-field span{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.site-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.snippet-actions{align-items:center;gap:8px}.snippet-status{margin-right:auto;font:10px var(--mono);color:var(--muted)}.snippet-status.is-ok{color:#4b6d00}.snippet-status.is-error{color:var(--danger)}
 </style>
 </head>
 <body class="fc-app">
@@ -98,6 +99,8 @@
   <div class="snippet-wrap">
     <div class="snippet" id="snippet"></div>
     <div class="snippet-actions">
+      <span class="snippet-status" id="check-install-status" aria-live="polite"></span>
+      <button class="fc-btn fc-btn-outline" id="check-install">Проверить установку</button>
       <button class="btn-copy" id="copy-btn">Скопировать код</button>
     </div>
   </div>
@@ -313,6 +316,9 @@ document.querySelector('#site').addEventListener('change', () => {
   renderCollectionSettings();
   renderSlideCookieSettings();
   updateSnippet();
+  const checkStatus = document.querySelector('#check-install-status');
+  checkStatus.textContent = '';
+  checkStatus.className = 'snippet-status';
   loadStats();
 });
 
@@ -445,6 +451,35 @@ document.querySelector('#copy-btn').addEventListener('click', async () => {
     }, 2000);
   } catch(e) {
     alert('Не удалось скопировать код');
+  }
+});
+
+document.querySelector('#check-install').addEventListener('click', async () => {
+  const siteId = document.querySelector('#site').value;
+  const button = document.querySelector('#check-install');
+  const status = document.querySelector('#check-install-status');
+  if (!siteId) return;
+  button.disabled = true;
+  status.className = 'snippet-status';
+  status.textContent = 'Проверяем главную страницу…';
+  try {
+    const response = await fetch('/api/check-install.php?site=' + encodeURIComponent(siteId), {cache: 'no-store'});
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || 'Не удалось проверить установку');
+    const found = result.checks.filter(item => item.status === 'installed').map(item => item.domain);
+    if (found.length) {
+      status.className = 'snippet-status is-ok';
+      status.textContent = 'Код найден: ' + found.join(', ');
+    } else {
+      const unavailable = result.checks.every(item => item.status === 'unavailable');
+      status.className = 'snippet-status is-error';
+      status.textContent = unavailable ? 'Сайт недоступен для проверки' : 'Код не найден на главной странице';
+    }
+  } catch (error) {
+    status.className = 'snippet-status is-error';
+    status.textContent = error.message || 'Не удалось проверить установку';
+  } finally {
+    button.disabled = false;
   }
 });
 
