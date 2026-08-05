@@ -4,7 +4,7 @@
   "branch": "main",
   "post_deploy": "systemctl reload php8.3-fpm && systemctl reload caddy",
   "health_checks": [
-    "https://metrika.clickshot.ru/counter.js"
+    "https://metrika.clickshot.ru/counter.js?id=neural_courses_ru_28520f"
   ],
   "caddy": {
     "enabled": true,

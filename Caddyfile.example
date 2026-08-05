@@ -4,7 +4,7 @@ metrika.clickshot.ru {
     # Отдаёт персонализированный загрузчик по прежнему URL /counter.js?id=SITE_ID.
     # При включённом Slide Cookie он содержит баннер до кода метрики.
     @counter path /counter.js
-    rewrite @counter /api/loader.php
+    uri @counter replace /counter.js /api/loader.php
 
     php_fastcgi unix//run/php/php8.3-fpm.sock
     file_server

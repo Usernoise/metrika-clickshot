@@ -91,7 +91,7 @@ metrika.clickshot.ru {
     root * /var/www/metrika.clickshot.ru/public
 
     @counter path /counter.js
-    rewrite @counter /api/loader.php
+    uri @counter replace /counter.js /api/loader.php
 
     php_fastcgi unix//run/php/php8.3-fpm.sock
     file_server
