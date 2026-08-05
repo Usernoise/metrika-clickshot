@@ -1,0 +1,14 @@
+{
+  "server": "root@46.8.96.72",
+  "remote_dir": "/var/www/metrika.clickshot.ru",
+  "branch": "main",
+  "post_deploy": "systemctl reload php8.3-fpm && systemctl reload caddy",
+  "health_checks": [
+    "https://metrika.clickshot.ru/counter.js"
+  ],
+  "caddy": {
+    "enabled": true,
+    "domain": "metrika.clickshot.ru",
+    "type": "php"
+  }
+}

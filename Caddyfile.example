@@ -1,0 +1,16 @@
+metrika.clickshot.ru {
+    root * /var/www/metrika.clickshot.ru/public
+
+    php_fastcgi unix//run/php/php8.3-fpm.sock
+    file_server
+
+    @health path /health
+    rewrite @health /health.php
+
+    handle_errors {
+        respond "Ошибка сервера" 500
+    }
+
+    # Не включайте access log для этого хоста,
+    # если не хотите сохранять IP-адреса посетителей.
+}

@@ -1,0 +1,6 @@
+storage/*.sqlite
+storage/*.sqlite-wal
+storage/*.sqlite-shm
+.DS_Store
+.vscode/
+.idea/
