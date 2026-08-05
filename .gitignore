@@ -4,3 +4,4 @@ storage/*.sqlite-shm
 .DS_Store
 .vscode/
 .idea/
+graphify-out/

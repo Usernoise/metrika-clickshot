@@ -131,23 +131,51 @@ if ($groupBy === 'week') {
     }
 }
 
-$stmt = $pdo->prepare(
-    'SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
-     FROM page_daily_stats
-     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-     GROUP BY path ORDER BY pageviews DESC LIMIT 30'
-);
-$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
-$pages = $stmt->fetchAll();
+$pages = [];
+if ($site['collection']['pages']) {
+    $stmt = $pdo->prepare(
+        'SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
+         FROM page_daily_stats
+         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+         GROUP BY path ORDER BY pageviews DESC LIMIT 30'
+    );
+    $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    $pages = $stmt->fetchAll();
+}
 
-$stmt = $pdo->prepare(
-    'SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
-     FROM referrer_daily_stats
-     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-     GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30'
-);
-$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
-$referrers = $stmt->fetchAll();
+$referrers = [];
+if ($site['collection']['referrers']) {
+    $stmt = $pdo->prepare(
+        'SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
+         FROM referrer_daily_stats
+         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+         GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30'
+    );
+    $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    $referrers = $stmt->fetchAll();
+}
+
+$tech = ['browsers' => [], 'os' => [], 'devices' => []];
+if ($site['collection']['tech']) {
+    foreach ([
+        'browsers' => ['browser_daily_stats', 'browser'],
+        'os' => ['os_daily_stats', 'os'],
+        'devices' => ['device_daily_stats', 'device'],
+    ] as $key => [$table, $column]) {
+        $stmt = $pdo->prepare(
+            "SELECT {$column} AS label, SUM(pageviews) AS pageviews, SUM(visits) AS visits
+             FROM {$table}
+             WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+             GROUP BY {$column} ORDER BY pageviews DESC LIMIT 20"
+        );
+        $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+        $tech[$key] = array_map(static fn(array $row): array => [
+            'label' => $row['label'],
+            'pageviews' => (int)$row['pageviews'],
+            'visits' => (int)$row['visits'],
+        ], $stmt->fetchAll());
+    }
+}
 
 $pageviews = array_sum(array_column($dailyMap, 'pageviews'));
 $visits = array_sum(array_column($dailyMap, 'visits'));
@@ -155,6 +183,7 @@ $visits = array_sum(array_column($dailyMap, 'visits'));
 respond_json(200, [
     'ok' => true,
     'site' => ['id' => $siteId, 'name' => $site['name']],
+    'collection' => $site['collection'],
     'period' => $days,
     'from' => $start,
     'to' => $end,
@@ -175,4 +204,5 @@ respond_json(200, [
         'pageviews' => (int)$r['pageviews'],
         'visits' => (int)$r['visits']
     ], $referrers),
+    'tech' => $tech,
 ]);

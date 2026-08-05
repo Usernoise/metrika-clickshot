@@ -34,7 +34,9 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
 .btn-delete{background:#ef4444;color:#fff;border-color:#ef4444;margin-left:4px}.btn-delete:hover{background:#dc2626}
 .btn-group{background:#f5f5f5;color:#111;border:1px solid #ddd;padding:5px 10px;font-size:13px}
 .btn-group.active{background:#111;color:#fff;border-color:#111}
-@media(max-width:760px){.wrap{padding:18px}header{align-items:flex-start;flex-direction:column}.cards,.grid{grid-template-columns:1fr}.site-form{grid-template-columns:1fr}.value{font-size:27px}}
+.collection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.collection-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e7e7e7;border-radius:12px;background:#fafafa;cursor:pointer}.collection-item input{margin:3px 0 0;width:16px;height:16px;accent-color:#111}.collection-item strong{display:block;font-size:14px}.collection-item span{display:block;margin-top:3px;color:#737373;font-size:12px;line-height:1.35}.collection-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.collection-status{font-size:13px;color:#737373}.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.cookie-config{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.cookie-config label{display:grid;gap:5px;color:#444;font-size:13px}.cookie-config input{width:100%}.cookie-note{margin-top:12px;padding:10px 12px;border-left:3px solid #111;background:#f7f7f7;color:#555;font-size:13px;line-height:1.45}.cookie-config[hidden]{display:none}
+@media(max-width:760px){.wrap{padding:18px}header{align-items:flex-start;flex-direction:column}.cards,.grid,.tech-grid,.collection-grid,.cookie-config{grid-template-columns:1fr}.site-form{grid-template-columns:1fr}.value{font-size:27px}.collection-footer{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
@@ -68,6 +70,36 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
 
 <div class="error" id="error"></div>
 
+<section class="panel" id="collection-panel">
+  <div class="panel-header"><div><h2>Состав собираемой статистики</h2><div class="muted" style="margin-top:4px">Настройки применяются к новым событиям. Сырые IP и User-Agent не сохраняются.</div></div></div>
+  <div class="collection-grid">
+    <label class="collection-item"><input type="checkbox" id="collect-pageviews"><span><strong>Просмотры и динамика</strong>Общий дневной и почасовой счётчик без данных о пользователе.</span></label>
+    <label class="collection-item"><input type="checkbox" id="collect-pages"><span><strong>Страницы</strong>Шаблон пути без query-параметров; распознаваемые ID маскируются.</span></label>
+    <label class="collection-item"><input type="checkbox" id="collect-referrers"><span><strong>Источники</strong>Только домен перехода, без полного URL и параметров.</span></label>
+    <label class="collection-item"><input type="checkbox" id="collect-visits"><span><strong>Приблизительные визиты</strong>Маркер вкладки в sessionStorage; без постоянных cookie.</span></label>
+    <label class="collection-item"><input type="checkbox" id="collect-tech"><span><strong>Технические категории</strong>Только браузер, ОС и тип устройства — без полной строки User-Agent.</span></label>
+  </div>
+  <div class="collection-footer"><span class="collection-status" id="collection-status"></span><button id="save-collection">Сохранить настройки</button></div>
+</section>
+
+<section class="panel" id="slide-cookie-panel">
+  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted" style="margin-top:4px">Баннер согласия со слайдером и опциональной блокировкой Яндекс.Метрики.</div></div></div>
+  <label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong>Подключается одним сниппетом вместе со счётчиком.</span></label>
+  <div class="cookie-config" id="slide-cookie-config" hidden>
+    <label>Ссылка на политику<input id="slide-policy-url" type="url" placeholder="/privacy или https://site.ru/privacy"></label>
+    <label>ID Яндекс.Метрики <span class="muted">необязательно</span><input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
+    <label>Параметр условия показа<input id="slide-param" placeholder="always"></label>
+    <label>Значение параметра<input id="slide-key" placeholder="пусто для always"></label>
+    <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
+    <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
+    <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
+    <label class="collection-item"><input type="checkbox" id="slide-block-metrika"><span><strong>Блокировать Яндекс.Метрику</strong>До подтверждения согласия.</span></label>
+    <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить согласие заново</strong>Создаёт новую версию ключа согласия.</span></label>
+  </div>
+  <div class="cookie-note">При включении вставьте обновлённый код в <code>&lt;head&gt;</code> без <code>async</code>: только так баннер успеет остановить Яндекс.Метрику.</div>
+  <div class="collection-footer"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie">Сохранить Slide Cookie</button></div>
+</section>
+
 <section class="cards">
   <div class="card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
   <div class="card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
@@ -97,6 +129,12 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
 </section>
 </div>
 
+<div class="tech-grid" id="tech-panels" hidden>
+<section class="panel"><h2>Браузеры</h2><table><thead><tr><th>Браузер</th><th class="num">Просмотры</th></tr></thead><tbody id="browsers"></tbody></table></section>
+<section class="panel"><h2>Операционные системы</h2><table><thead><tr><th>ОС</th><th class="num">Просмотры</th></tr></thead><tbody id="operating-systems"></tbody></table></section>
+<section class="panel"><h2>Устройства</h2><table><thead><tr><th>Тип</th><th class="num">Просмотры</th></tr></thead><tbody id="devices"></tbody></table></section>
+</div>
+
 <section class="panel">
   <h2>Добавить новый сайт</h2>
   <div class="site-form">
@@ -119,6 +157,7 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
 
 <script>
 let currentGroup = 'day';
+let sitesById = {};
 
 function fmt(v){
   return new Intl.NumberFormat("ru-RU").format(Number(v||0));
@@ -142,6 +181,7 @@ async function loadSites(){
     const previousValue = select.value;
     
     const sites = (d && d.sites) ? d.sites.filter(s => s.is_active) : [];
+    sitesById = Object.fromEntries(sites.map(s => [s.id, s]));
     
     select.innerHTML = sites.map(s => {
       const label = s.name ? esc(s.name) : esc(s.id);
@@ -156,13 +196,50 @@ async function loadSites(){
   } catch(e) {
     console.error('Ошибка загрузки сайтов:', e);
   }
+  renderCollectionSettings();
+  renderSlideCookieSettings();
   updateSnippet();
+}
+
+function renderCollectionSettings(){
+  const site = sitesById[document.querySelector('#site').value];
+  const collection = site && site.collection ? site.collection : {pageviews:true, pages:true, referrers:true, visits:true, tech:false};
+  document.querySelector('#collect-pageviews').checked = !!collection.pageviews;
+  document.querySelector('#collect-pages').checked = !!collection.pages;
+  document.querySelector('#collect-referrers').checked = !!collection.referrers;
+  document.querySelector('#collect-visits').checked = !!collection.visits;
+  document.querySelector('#collect-tech').checked = !!collection.tech;
+  document.querySelector('#collection-status').textContent = site
+    ? 'Включённые категории сохраняются только в виде агрегатов.'
+    : 'Сначала выберите сайт.';
 }
 
 function updateSnippet(){
   const select = document.querySelector('#site');
   const id = (select && select.value) ? select.value : 'SITE_ID';
-  document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '" async><\/script>';
+  const cookieEnabled = !!currentSlideCookie().enabled;
+  document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '"' + (cookieEnabled ? '' : ' async') + '><\/script>';
+}
+
+function currentSlideCookie(){
+  const site = sitesById[document.querySelector('#site').value];
+  return site && site.slide_cookie ? site.slide_cookie : {enabled:false, policy_url:'', param:'always', key:'', block_metrika:true, ym_counter:'', accent_color:'#C5FF1A', dark_color:'#0A0A0A', accent_text_color:'#C5FF1A', version:1};
+}
+
+function renderSlideCookieSettings(){
+  const c = currentSlideCookie();
+  document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
+  document.querySelector('#slide-policy-url').value = c.policy_url || '';
+  document.querySelector('#slide-param').value = c.param || 'always';
+  document.querySelector('#slide-key').value = c.key || '';
+  document.querySelector('#slide-ym-counter').value = c.ym_counter || '';
+  document.querySelector('#slide-accent-color').value = c.accent_color || '#C5FF1A';
+  document.querySelector('#slide-dark-color').value = c.dark_color || '#0A0A0A';
+  document.querySelector('#slide-accent-text-color').value = c.accent_text_color || '#C5FF1A';
+  document.querySelector('#slide-block-metrika').checked = !!c.block_metrika;
+  document.querySelector('#slide-reset-consent').checked = false;
+  document.querySelector('#slide-cookie-config').hidden = !c.enabled;
+  document.querySelector('#slide-cookie-status').textContent = c.enabled ? 'Версия согласия: ' + (c.version || 1) : 'Slide Cookie выключен.';
 }
 
 function toISO(d){
@@ -234,6 +311,15 @@ async function loadStats(){
     document.querySelector('#referrers').innerHTML = (d.referrers || []).map(x => 
       '<tr><td>' + esc(x.referrer) + '</td><td class="num">' + fmt(x.pageviews) + '</td><td class="num">' + fmt(x.visits) + '</td></tr>'
     ).join('');
+
+    const techEnabled = !!(d.collection && d.collection.tech);
+    document.querySelector('#tech-panels').hidden = !techEnabled;
+    const techRows = (rows) => (rows || []).map(x =>
+      '<tr><td>' + esc(x.label) + '</td><td class="num">' + fmt(x.pageviews) + '</td></tr>'
+    ).join('');
+    document.querySelector('#browsers').innerHTML = techRows(d.tech && d.tech.browsers);
+    document.querySelector('#operating-systems').innerHTML = techRows(d.tech && d.tech.os);
+    document.querySelector('#devices').innerHTML = techRows(d.tech && d.tech.devices);
   } catch(e) {
     console.error('Ошибка загрузки статистики:', e);
     error.textContent = 'Не удалось загрузить статистику';
@@ -251,8 +337,74 @@ document.querySelectorAll('.btn-group').forEach(btn => {
 });
 
 document.querySelector('#site').addEventListener('change', () => {
+  renderCollectionSettings();
+  renderSlideCookieSettings();
   updateSnippet();
   loadStats();
+});
+
+document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) => {
+  document.querySelector('#slide-cookie-config').hidden = !e.target.checked;
+});
+
+document.querySelector('#save-slide-cookie').addEventListener('click', async () => {
+  const site = document.querySelector('#site').value;
+  if(!site) return;
+  const button = document.querySelector('#save-slide-cookie');
+  const status = document.querySelector('#slide-cookie-status');
+  const slide_cookie = {
+    enabled: document.querySelector('#slide-cookie-enabled').checked,
+    policy_url: document.querySelector('#slide-policy-url').value.trim(),
+    param: document.querySelector('#slide-param').value.trim() || 'always',
+    key: document.querySelector('#slide-key').value.trim(),
+    ym_counter: document.querySelector('#slide-ym-counter').value.trim(),
+    block_metrika: document.querySelector('#slide-block-metrika').checked,
+    accent_color: document.querySelector('#slide-accent-color').value,
+    dark_color: document.querySelector('#slide-dark-color').value,
+    accent_text_color: document.querySelector('#slide-accent-text-color').value,
+    reset_consent: document.querySelector('#slide-reset-consent').checked
+  };
+  button.disabled = true; status.textContent = 'Сохраняем…';
+  try {
+    const r = await fetch('/api/sites.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:site, slide_cookie})});
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Не удалось сохранить Slide Cookie');
+    sitesById[site].slide_cookie = d.slide_cookie;
+    renderSlideCookieSettings(); updateSnippet();
+    status.textContent = 'Сохранено. Скопируйте обновлённый код подключения.';
+  } catch(e) { status.textContent = e.message || 'Не удалось сохранить Slide Cookie'; }
+  finally { button.disabled = false; }
+});
+
+document.querySelector('#save-collection').addEventListener('click', async () => {
+  const site = document.querySelector('#site').value;
+  if(!site) return;
+  const button = document.querySelector('#save-collection');
+  const status = document.querySelector('#collection-status');
+  const collection = {
+    pageviews: document.querySelector('#collect-pageviews').checked,
+    pages: document.querySelector('#collect-pages').checked,
+    referrers: document.querySelector('#collect-referrers').checked,
+    visits: document.querySelector('#collect-visits').checked,
+    tech: document.querySelector('#collect-tech').checked
+  };
+  button.disabled = true;
+  status.textContent = 'Сохраняем…';
+  try {
+    const r = await fetch('/api/sites.php', {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id: site, collection})
+    });
+    const d = await r.json();
+    if(!r.ok || !d.ok) throw new Error(d.error || 'Не удалось сохранить настройки');
+    sitesById[site].collection = d.collection;
+    status.textContent = 'Сохранено. Новые события будут собираться по этим правилам.';
+    loadStats();
+  } catch(e) {
+    status.textContent = e.message || 'Не удалось сохранить настройки';
+  } finally {
+    button.disabled = false;
+  }
 });
 
 const daysSelect = document.querySelector('#days');

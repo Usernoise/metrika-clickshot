@@ -44,7 +44,8 @@ try {
 
     $path = clean_path($input['path'] ?? '/');
     $referrer = clean_referrer($input['referrer'] ?? '', $domains);
-    $visit = ($input['newVisit'] ?? false) === true ? 1 : 0;
+    $collection = $site['collection'];
+    $visit = $collection['visits'] && ($input['newVisit'] ?? false) === true ? 1 : 0;
 
     $now = new DateTimeImmutable('now');
     $day = $now->format('Y-m-d');
@@ -54,35 +55,64 @@ try {
     $pdo->beginTransaction();
 
     $queries = [
-        [
-            'INSERT INTO daily_stats(site_id, stat_date, pageviews, visits)
-             VALUES(:site,:date,1,:visits)
-             ON CONFLICT(site_id,stat_date)
-             DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
-            [':site' => $siteId, ':date' => $day, ':visits' => $visit]
-        ],
-        [
-            'INSERT INTO hourly_stats(site_id, stat_hour, pageviews, visits)
-             VALUES(:site,:hour,1,:visits)
-             ON CONFLICT(site_id,stat_hour)
-             DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
-            [':site' => $siteId, ':hour' => $hour, ':visits' => $visit]
-        ],
-        [
+    ];
+
+    if ($collection['pageviews']) {
+        array_push(
+            $queries,
+            [
+                'INSERT INTO daily_stats(site_id, stat_date, pageviews, visits)
+                 VALUES(:site,:date,1,:visits)
+                 ON CONFLICT(site_id,stat_date)
+                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
+                [':site' => $siteId, ':date' => $day, ':visits' => $visit]
+            ],
+            [
+                'INSERT INTO hourly_stats(site_id, stat_hour, pageviews, visits)
+                 VALUES(:site,:hour,1,:visits)
+                 ON CONFLICT(site_id,stat_hour)
+                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
+                [':site' => $siteId, ':hour' => $hour, ':visits' => $visit]
+            ]
+        );
+    }
+
+    if ($collection['pages']) {
+        $queries[] = [
             'INSERT INTO page_daily_stats(site_id, stat_date, path, pageviews, visits)
              VALUES(:site,:date,:path,1,:visits)
              ON CONFLICT(site_id,stat_date,path)
              DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':path' => $path, ':visits' => $visit]
-        ],
-        [
+        ];
+    }
+
+    if ($collection['referrers']) {
+        $queries[] = [
             'INSERT INTO referrer_daily_stats(site_id, stat_date, referrer, pageviews, visits)
              VALUES(:site,:date,:referrer,1,:visits)
              ON CONFLICT(site_id,stat_date,referrer)
              DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':referrer' => $referrer, ':visits' => $visit]
-        ],
-    ];
+        ];
+    }
+
+    if ($collection['tech']) {
+        $tech = classify_user_agent();
+        foreach ([
+            ['browser_daily_stats', 'browser', $tech['browser']],
+            ['os_daily_stats', 'os', $tech['os']],
+            ['device_daily_stats', 'device', $tech['device']],
+        ] as [$table, $column, $value]) {
+            $queries[] = [
+                "INSERT INTO {$table}(site_id, stat_date, {$column}, pageviews, visits)
+                 VALUES(:site,:date,:value,1,:visits)
+                 ON CONFLICT(site_id,stat_date,{$column})
+                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits",
+                [':site' => $siteId, ':date' => $day, ':value' => $value, ':visits' => $visit]
+            ];
+        }
+    }
 
     foreach ($queries as [$sql, $params]) {
         $stmt = $pdo->prepare($sql);
