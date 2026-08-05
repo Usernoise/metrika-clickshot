@@ -5,51 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClickShot Metrika</title>
 <style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f5;color:#171717}
-*{box-sizing:border-box}body{margin:0}.wrap{max-width:1180px;margin:auto;padding:28px}
-header{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:24px}
-.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:12px;background:#111;color:#fff;display:grid;place-items:center;font-weight:800}
-h1{margin:0 0 4px;font-size:28px}.muted{color:#737373;font-size:14px}
-.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-#site{min-width:180px;font-weight:600}
-select,button,input{border:1px solid #ddd;border-radius:10px;background:#fff;padding:9px 12px;font:inherit}
-button{cursor:pointer;background:#111;color:#fff;border-color:#111;transition:all .15s ease}button:hover{opacity:.9}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
-.card,.panel{background:#fff;border:1px solid #e7e7e7;border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-.card{padding:20px}.label{color:#777;font-size:13px}.value{margin-top:7px;font-size:32px;font-weight:750}
-.panel{padding:20px;margin-bottom:16px}.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.panel h2{margin:0;font-size:17px}
-.chart{height:230px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #ddd}
-.bar-wrap{flex:1;height:100%;min-width:3px;display:flex;align-items:flex-end;position:relative}
-.bar{width:100%;min-height:1px;background:#222;border-radius:4px 4px 0 0}
-.bar-wrap:hover:after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);padding:6px 8px;border-radius:7px;background:#111;color:#fff;white-space:nowrap;font-size:12px;z-index:5}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:10px 8px;border-bottom:1px solid #eee;text-align:left}th{color:#777;font-size:12px;font-weight:600}
-th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16px;border-radius:12px;background:#fff0f0;border:1px solid #efcaca}
-.site-form{display:grid;grid-template-columns:1fr 2fr auto;gap:8px}
-.snippet-wrap{display:flex;flex-direction:column;gap:10px}
-.snippet{background:#111;color:#fff;padding:14px;border-radius:10px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;overflow:auto;white-space:pre-wrap;word-break:break-all}
-.snippet-actions{display:flex;justify-content:flex-end}
-.btn-copy{background:#222;color:#fff;font-size:13px;padding:8px 16px;border-radius:8px;border:none}
-.btn-copy.copied{background:#16a34a}
-.btn-delete{background:#ef4444;color:#fff;border-color:#ef4444;margin-left:4px}.btn-delete:hover{background:#dc2626}
-.btn-group{background:#f5f5f5;color:#111;border:1px solid #ddd;padding:5px 10px;font-size:13px}
-.btn-group.active{background:#111;color:#fff;border-color:#111}
-.collection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.collection-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid #e7e7e7;border-radius:12px;background:#fafafa;cursor:pointer}.collection-item input{margin:3px 0 0;width:16px;height:16px;accent-color:#111}.collection-item strong{display:block;font-size:14px}.collection-item span{display:block;margin-top:3px;color:#737373;font-size:12px;line-height:1.35}.collection-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.collection-status{font-size:13px;color:#737373}.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.cookie-config{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.cookie-config label{display:grid;gap:5px;color:#444;font-size:13px}.cookie-config input{width:100%}.cookie-note{margin-top:12px;padding:10px 12px;border-left:3px solid #111;background:#f7f7f7;color:#555;font-size:13px;line-height:1.45}.cookie-config[hidden]{display:none}
-@media(max-width:760px){.wrap{padding:18px}header{align-items:flex-start;flex-direction:column}.cards,.grid,.tech-grid,.collection-grid,.cookie-config{grid-template-columns:1fr}.site-form{grid-template-columns:1fr}.value{font-size:27px}.collection-footer{align-items:flex-start;flex-direction:column}}
+@import url('https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600&display=swap');
+:root{--ink:#0a0a0a;--muted:#737373;--line:#e5e5e5;--soft:#f5f5f5;--lime:#c5ff1a;--lime-soft:#f1ffcc;--danger:#b42318;--font:'Onest',sans-serif;--mono:'JetBrains Mono',monospace;--display:'Geologica',sans-serif}*{box-sizing:border-box}body.fc-app{margin:0;background:#fff;color:var(--ink);font:13px/1.5 var(--font)}button,input,select{font:inherit}button{cursor:pointer}.wrap{max-width:1280px;margin:auto;padding:0 32px}.app-nav{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font:600 15px var(--display)}.logo{width:30px;height:30px;background:var(--ink);color:var(--lime);display:grid;place-items:center;border-radius:7px;font:500 10px var(--mono);letter-spacing:-.1em}.nav-tag,.eyebrow,.label{font:500 10px var(--mono);letter-spacing:.09em;text-transform:uppercase}.nav-tag{color:var(--muted)}header{padding:48px 0 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;background-image:radial-gradient(#e5e5e5 .75px,transparent .75px);background-size:14px 14px;background-position:0 14px}h1,h2{font-family:var(--display);letter-spacing:-.035em}h1{font-size:38px;line-height:1;margin:8px 0 10px}.eyebrow{display:flex;align-items:center;gap:8px;color:#404040}.eyebrow:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.35)}.muted{color:var(--muted);font-size:13px}.controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}.fc-input,select,input{border:1px solid #d4d4d4;border-radius:6px;background:#fff;padding:9px 10px;outline:none;min-height:36px}.fc-input:focus,select:focus,input:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.28)}#site{min-width:190px;font-weight:600}.fc-btn{border-radius:6px;padding:9px 12px;border:1px solid transparent;font-weight:500;min-height:36px;transition:.18s ease}.fc-btn:hover{transform:translateY(-1px)}.fc-btn-primary{background:var(--lime);border-color:var(--lime);color:#181b25}.fc-btn-outline{background:#fff;border-color:var(--line);color:#404040}.btn-delete{color:var(--danger);border-color:#f0c7c3;background:#fff}.main{padding:0 0 64px}.error{display:none;margin:0 0 16px;padding:11px 13px;border:1px solid #f0c7c3;border-radius:8px;background:#fff3f2;color:var(--danger);font:12px var(--mono)}.cards{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}.card{padding:17px 18px;border-right:1px solid var(--line)}.card:last-child{border:0}.label{color:#737373}.value{font:600 30px/1 var(--display);margin-top:10px;letter-spacing:-.04em}.panel{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:16px;min-width:0}.panel-header{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:1px solid var(--line);gap:12px}.panel-header h2,.panel h2{font-size:15px;margin:0}.panel-header .muted{font-size:11px}.chart-panel{padding-bottom:14px}.chart{margin:20px 16px 0;height:198px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #d4d4d4}.bar-wrap{flex:1;min-width:3px;height:100%;display:flex;align-items:flex-end;position:relative}.bar{width:100%;min-height:2px;background:#181b25;border-radius:3px 3px 0 0;transition:background .15s}.bar-wrap:hover .bar{background:var(--lime)}.bar-wrap:hover:after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);padding:5px 7px;background:#181b25;color:#fff;border-radius:4px;white-space:nowrap;font:10px var(--mono);z-index:3}.btn-group{border:0;border-bottom:2px solid transparent;background:transparent;color:#737373;padding:7px 8px;font:10px var(--mono);text-transform:uppercase}.btn-group.active{color:#0a0a0a;border-color:var(--lime)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid .panel{margin:0}.table-panel{overflow:hidden}.table-panel>h2{padding:14px 14px 6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 14px;border-bottom:1px solid #ededed;text-align:left}tbody tr:last-child td{border-bottom:0}th{font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#737373}th.num,td.num{text-align:right}.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.collection-panel{padding:16px}.settings-head{padding-bottom:12px;border-bottom:1px dashed var(--line);margin-bottom:12px}.collection-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.collection-item{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:8px;cursor:pointer;background:#fff;transition:border-color .15s}.collection-item:hover{border-color:#a3a3a3}.collection-item input{min-height:auto;width:15px;height:15px;margin:2px 0 0;accent-color:#a7dc00}.collection-item strong{display:block;font-size:12px}.collection-item span span{display:block;margin-top:3px;color:#737373;font-size:10px;line-height:1.35}.collection-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.collection-status{font-size:11px;color:var(--muted)}.slide-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;padding:16px}.cookie-config{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cookie-config label{display:grid;gap:4px;font:10px var(--mono);text-transform:uppercase;color:#525252}.cookie-config input{width:100%;padding:7px 8px;min-height:32px}.cookie-config .collection-item{font:12px var(--font);text-transform:none}.cookie-config[hidden]{display:none!important}.cookie-note{background:#fafafa;border-left:3px solid var(--lime);padding:10px 11px;color:#525252;font-size:11px}.site-form{display:grid;grid-template-columns:1fr 2fr auto;gap:8px;padding:14px}.snippet-wrap{padding:14px}.snippet{padding:13px;background:#181b25;color:#efffc7;border-radius:7px;font:11px/1.55 var(--mono);word-break:break-all}.snippet-actions{display:flex;justify-content:flex-end;margin-top:9px}.btn-copy{background:var(--lime);border:0;border-radius:6px;padding:8px 11px;color:#181b25;font-weight:500}.btn-copy.copied{background:#c5ff1a}.section-title{display:flex;justify-content:space-between;align-items:center;margin:32px 0 12px}.section-title h2{font-size:18px;margin:0}.section-title span{font:10px var(--mono);color:var(--muted);text-transform:uppercase}.add-panel{margin-top:32px}.add-panel h2,.snippet-panel h2{padding:14px 14px 0}#custom-range{gap:5px;align-items:center}.footnote{text-align:center;color:#737373;font:10px var(--mono);margin-top:24px}[hidden]{display:none!important}@media(max-width:980px){.collection-grid{grid-template-columns:repeat(2,1fr)}.slide-grid{grid-template-columns:1fr}.tech-grid{grid-template-columns:1fr}.wrap{padding:0 20px}}@media(max-width:680px){header{padding-top:34px;align-items:flex-start;flex-direction:column}h1{font-size:31px}.cards,.grid,.site-form{grid-template-columns:1fr}.card{border-right:0;border-bottom:1px solid var(--line)}.card:last-child{border-bottom:0}.controls{justify-content:flex-start}.collection-grid{grid-template-columns:1fr}.collection-footer{align-items:flex-start;flex-direction:column}.cookie-config{grid-template-columns:1fr}.wrap{padding:0 14px}.app-nav{height:56px}}
+</style>
+<style>
+.sc-preview{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f7f7f7}.sc-preview-head{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border-bottom:1px solid var(--line);font:10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.sc-preview-stage{position:relative;min-height:175px;padding:18px 12px 12px;display:flex;align-items:flex-end;background:radial-gradient(#ddd .7px,transparent .7px);background-size:10px 10px}.sc-banner{width:100%;border-radius:8px;padding:12px;background:var(--sc-dark,#0a0a0a);color:#fff;box-shadow:0 8px 18px rgba(10,10,10,.16);transition:background .2s ease}.sc-banner-top{display:flex;align-items:center;gap:7px;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase}.sc-banner-mark{width:8px;height:8px;border-radius:50%;background:var(--sc-accent,#c5ff1a);box-shadow:0 0 0 3px color-mix(in srgb,var(--sc-accent,#c5ff1a) 22%,transparent)}.sc-banner p{font-size:11px;line-height:1.4;margin:9px 0 11px;color:#e5e5e5}.sc-banner-actions{display:flex;gap:7px}.sc-banner button{border:0;border-radius:4px;padding:6px 8px;font:500 10px var(--font);background:var(--sc-accent,#c5ff1a);color:var(--sc-accent-text,#0a0a0a)}.sc-banner .sc-link{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:2px}.sc-preview.is-off{opacity:.48}.sc-preview.is-off .sc-preview-stage:after{content:'Включите Slide Cookie для показа баннера';position:absolute;font:10px var(--mono);color:var(--muted)}
+.site-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(10,10,10,.44);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease}.site-modal.is-open{opacity:1}.site-modal-card{width:min(100%,460px);padding:22px;border-radius:12px;background:#fff;box-shadow:0 24px 60px rgba(10,10,10,.22);transform:translateY(10px);transition:transform .22s ease}.site-modal.is-open .site-modal-card{transform:translateY(0)}.site-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.site-modal-head h2{font-size:24px;margin:7px 0 0}.site-modal-close{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted);font-size:21px;line-height:1}.site-modal-card>.muted{margin:14px 0 18px}.modal-field{display:grid;gap:6px;margin:12px 0;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#404040}.modal-field span{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.site-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 </style>
 </head>
-<body>
+<body class="fc-app">
 <div class="wrap">
-<header>
-  <div class="brand">
-    <div class="logo">CS</div>
-    <div>
-      <h1>ClickShot Metrika</h1>
-      <div class="muted">Агрегированная статистика без пользовательских идентификаторов</div>
-    </div>
-  </div>
-  <div class="controls">
+  <nav class="app-nav"><div class="brand"><div class="logo">CS</div>ClickShot <span class="muted">/ Metrika</span></div><span class="nav-tag">privacy-first analytics</span></nav>
+  <header>
+    <div><div class="eyebrow">Аналитика сайта</div><h1>Статистика без слежки</h1><div class="muted">Агрегированные данные о трафике — без пользовательских идентификаторов.</div></div>
+    <div class="controls">
     <select id="site"></select>
     <select id="days">
       <option value="7">7 дней</option>
@@ -63,15 +32,40 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
       <span class="muted">—</span>
       <input type="date" id="date-to" title="По">
     </div>
-    <button id="reload" style="background:#fff;color:#111;border-color:#ddd">Обновить</button>
-    <button id="delete-site" class="btn-delete" title="Удалить выбранный сайт">Удалить сайт</button>
+    <button id="add-site-open" class="fc-btn fc-btn-primary">+ Добавить сайт</button>
+    <button id="reload" class="fc-btn fc-btn-outline">Обновить</button>
+    <button id="delete-site" class="fc-btn btn-delete" title="Удалить выбранный сайт">Удалить</button>
   </div>
 </header>
 
+<main class="main">
 <div class="error" id="error"></div>
 
-<section class="panel" id="collection-panel">
-  <div class="panel-header"><div><h2>Состав собираемой статистики</h2><div class="muted" style="margin-top:4px">Настройки применяются к новым событиям. Сырые IP и User-Agent не сохраняются.</div></div></div>
+<section class="cards" aria-label="Ключевые метрики">
+  <div class="card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
+  <div class="card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
+  <div class="card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div></div>
+</section>
+
+<section class="panel chart-panel">
+  <div class="panel-header"><h2>Динамика просмотров</h2><div>
+    <button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button>
+  </div></div><div class="chart" id="chart"></div>
+</section>
+
+<div class="grid">
+<section class="panel table-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Страница</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
+<section class="panel table-panel"><h2>Источники</h2><table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table></section>
+</div>
+<div class="tech-grid" id="tech-panels" hidden>
+<section class="panel table-panel"><h2>Браузеры</h2><table><thead><tr><th>Браузер</th><th class="num">Просмотры</th></tr></thead><tbody id="browsers"></tbody></table></section>
+<section class="panel table-panel"><h2>Операционные системы</h2><table><thead><tr><th>ОС</th><th class="num">Просмотры</th></tr></thead><tbody id="operating-systems"></tbody></table></section>
+<section class="panel table-panel"><h2>Устройства</h2><table><thead><tr><th>Тип</th><th class="num">Просмотры</th></tr></thead><tbody id="devices"></tbody></table></section>
+</div>
+
+<div class="section-title"><h2>Настройки счётчика</h2><span>Применяются к новым событиям</span></div>
+<section class="panel collection-panel" id="collection-panel">
+  <div class="settings-head"><h2>Состав собираемой статистики</h2><div class="muted">Сырые IP и User-Agent не сохраняются.</div></div>
   <div class="collection-grid">
     <label class="collection-item"><input type="checkbox" id="collect-pageviews"><span><strong>Просмотры и динамика</strong>Общий дневной и почасовой счётчик без данных о пользователе.</span></label>
     <label class="collection-item"><input type="checkbox" id="collect-pages"><span><strong>Страницы</strong>Шаблон пути без query-параметров; распознаваемые ID маскируются.</span></label>
@@ -79,12 +73,12 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
     <label class="collection-item"><input type="checkbox" id="collect-visits"><span><strong>Приблизительные визиты</strong>Маркер вкладки в sessionStorage; без постоянных cookie.</span></label>
     <label class="collection-item"><input type="checkbox" id="collect-tech"><span><strong>Технические категории</strong>Только браузер, ОС и тип устройства — без полной строки User-Agent.</span></label>
   </div>
-  <div class="collection-footer"><span class="collection-status" id="collection-status"></span><button id="save-collection">Сохранить настройки</button></div>
+  <div class="collection-footer"><span class="collection-status" id="collection-status"></span><button id="save-collection" class="fc-btn fc-btn-primary">Сохранить настройки</button></div>
 </section>
 
 <section class="panel" id="slide-cookie-panel">
-  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted" style="margin-top:4px">Баннер согласия со слайдером и опциональной блокировкой Яндекс.Метрики.</div></div></div>
-  <label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong>Подключается одним сниппетом вместе со счётчиком.</span></label>
+  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Баннер согласия и опциональная блокировка Яндекс.Метрики.</div></div></div>
+  <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">При включении вставьте обновлённый код в <code>&lt;head&gt;</code> без <code>async</code>: так баннер успеет остановить Яндекс.Метрику.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-banner"><div class="sc-banner-top"><span class="sc-banner-mark"></span>cookie notice</div><p>Мы используем cookie, чтобы улучшать работу сайта и собирать обезличенную статистику.</p><div class="sc-banner-actions"><button type="button">Принять</button><button type="button" class="sc-link">Подробнее</button></div></div></div></aside></div>
   <div class="cookie-config" id="slide-cookie-config" hidden>
     <label>Ссылка на политику<input id="slide-policy-url" type="url" placeholder="/privacy или https://site.ru/privacy"></label>
     <label>ID Яндекс.Метрики <span class="muted">необязательно</span><input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
@@ -95,56 +89,11 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
     <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
     <label class="collection-item"><input type="checkbox" id="slide-block-metrika"><span><strong>Блокировать Яндекс.Метрику</strong>До подтверждения согласия.</span></label>
     <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить согласие заново</strong>Создаёт новую версию ключа согласия.</span></label>
-  </div>
-  <div class="cookie-note">При включении вставьте обновлённый код в <code>&lt;head&gt;</code> без <code>async</code>: только так баннер успеет остановить Яндекс.Метрику.</div>
-  <div class="collection-footer"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie">Сохранить Slide Cookie</button></div>
+  </div></div>
+  <div class="collection-footer" style="padding:0 16px 16px"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить Slide Cookie</button></div>
 </section>
 
-<section class="cards">
-  <div class="card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
-  <div class="card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
-  <div class="card"><div class="label">Страниц за визит</div><div class="value" id="depth">0</div></div>
-</section>
-
-<section class="panel">
-  <div class="panel-header">
-    <h2>Динамика просмотров</h2>
-    <div style="display:flex;gap:4px;">
-      <button class="btn-group active" data-group="day">По дням</button>
-      <button class="btn-group" data-group="week">По неделям</button>
-      <button class="btn-group" data-group="month">По месяцам</button>
-    </div>
-  </div>
-  <div class="chart" id="chart"></div>
-</section>
-
-<div class="grid">
-<section class="panel">
-  <h2>Популярные страницы</h2>
-  <table><thead><tr><th>Страница</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table>
-</section>
-<section class="panel">
-  <h2>Источники</h2>
-  <table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table>
-</section>
-</div>
-
-<div class="tech-grid" id="tech-panels" hidden>
-<section class="panel"><h2>Браузеры</h2><table><thead><tr><th>Браузер</th><th class="num">Просмотры</th></tr></thead><tbody id="browsers"></tbody></table></section>
-<section class="panel"><h2>Операционные системы</h2><table><thead><tr><th>ОС</th><th class="num">Просмотры</th></tr></thead><tbody id="operating-systems"></tbody></table></section>
-<section class="panel"><h2>Устройства</h2><table><thead><tr><th>Тип</th><th class="num">Просмотры</th></tr></thead><tbody id="devices"></tbody></table></section>
-</div>
-
-<section class="panel">
-  <h2>Добавить новый сайт</h2>
-  <div class="site-form">
-    <input id="new-name" placeholder="Название сайта (напр. Мой Блог)">
-    <input id="new-domains" placeholder="Домены через запятую (напр. blog.ru, www.blog.ru)">
-    <button id="add-site">Добавить сайт</button>
-  </div>
-</section>
-
-<section class="panel">
+<section class="panel snippet-panel">
   <h2>Код подключения для выбранного сайта</h2>
   <div class="snippet-wrap">
     <div class="snippet" id="snippet"></div>
@@ -153,6 +102,17 @@ th.num,td.num{text-align:right}.error{display:none;padding:14px;margin-bottom:16
     </div>
   </div>
 </section>
+<p class="footnote">ClickShot Metrika · Агрегированная аналитика без пользовательских идентификаторов</p>
+</main>
+</div>
+<div class="site-modal" id="site-modal" hidden role="dialog" aria-modal="true" aria-labelledby="site-modal-title">
+  <form class="site-modal-card" id="site-form">
+    <div class="site-modal-head"><div><div class="eyebrow">Новый проект</div><h2 id="site-modal-title">Добавить сайт</h2></div><button type="button" class="site-modal-close" id="site-modal-close" aria-label="Закрыть">×</button></div>
+    <p class="muted">Создадим отдельный счётчик. После добавления вы получите готовый код подключения.</p>
+    <label class="modal-field">Название сайта<input id="new-name" required placeholder="Например, Мой Блог" autocomplete="off"></label>
+    <label class="modal-field">Домены<input id="new-domains" required placeholder="blog.ru, www.blog.ru" autocomplete="off"><span>Несколько доменов укажите через запятую.</span></label>
+    <div class="site-modal-actions"><button type="button" class="fc-btn fc-btn-outline" id="site-modal-cancel">Отмена</button><button id="add-site" class="fc-btn fc-btn-primary">Создать сайт</button></div>
+  </form>
 </div>
 
 <script>
@@ -226,6 +186,17 @@ function currentSlideCookie(){
   return site && site.slide_cookie ? site.slide_cookie : {enabled:false, policy_url:'', param:'always', key:'', block_metrika:true, ym_counter:'', accent_color:'#C5FF1A', dark_color:'#0A0A0A', accent_text_color:'#C5FF1A', version:1};
 }
 
+function updateSlidePreview(){
+  const preview = document.querySelector('#slide-preview');
+  if(!preview) return;
+  const enabled = document.querySelector('#slide-cookie-enabled').checked;
+  preview.classList.toggle('is-off', !enabled);
+  preview.style.setProperty('--sc-accent', document.querySelector('#slide-accent-color').value || '#C5FF1A');
+  preview.style.setProperty('--sc-dark', document.querySelector('#slide-dark-color').value || '#0A0A0A');
+  preview.style.setProperty('--sc-accent-text', document.querySelector('#slide-accent-text-color').value || '#C5FF1A');
+  document.querySelector('#slide-preview-state').textContent = enabled ? 'как на сайте' : 'выключен';
+}
+
 function renderSlideCookieSettings(){
   const c = currentSlideCookie();
   document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
@@ -240,6 +211,7 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
   document.querySelector('#slide-cookie-status').textContent = c.enabled ? 'Версия согласия: ' + (c.version || 1) : 'Slide Cookie выключен.';
+  updateSlidePreview();
 }
 
 function toISO(d){
@@ -345,6 +317,11 @@ document.querySelector('#site').addEventListener('change', () => {
 
 document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) => {
   document.querySelector('#slide-cookie-config').hidden = !e.target.checked;
+  updateSlidePreview();
+});
+
+['#slide-accent-color', '#slide-dark-color', '#slide-accent-text-color'].forEach(selector => {
+  document.querySelector(selector).addEventListener('input', updateSlidePreview);
 });
 
 document.querySelector('#save-slide-cookie').addEventListener('click', async () => {
@@ -469,7 +446,28 @@ document.querySelector('#copy-btn').addEventListener('click', async () => {
   }
 });
 
-document.querySelector('#add-site').addEventListener('click', async () => {
+const siteModal = document.querySelector('#site-modal');
+function openSiteModal(){
+  siteModal.hidden = false;
+  requestAnimationFrame(() => siteModal.classList.add('is-open'));
+  document.querySelector('#new-name').focus();
+}
+function closeSiteModal(){
+  siteModal.classList.remove('is-open');
+  setTimeout(() => { siteModal.hidden = true; }, 220);
+}
+document.querySelector('#add-site-open').addEventListener('click', openSiteModal);
+document.querySelector('#site-modal-close').addEventListener('click', closeSiteModal);
+document.querySelector('#site-modal-cancel').addEventListener('click', closeSiteModal);
+siteModal.addEventListener('click', (e) => { if(e.target === siteModal) closeSiteModal(); });
+document.addEventListener('keydown', (e) => { if(e.key === 'Escape' && !siteModal.hidden) closeSiteModal(); });
+document.querySelector('#site-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  document.querySelector('#add-site').click();
+});
+
+document.querySelector('#add-site').addEventListener('click', async (e) => {
+  e.preventDefault();
   const nameVal = document.querySelector('#new-name').value.trim();
   const domainsVal = document.querySelector('#new-domains').value.split(',').map(x => x.trim()).filter(Boolean);
   
@@ -492,6 +490,7 @@ document.querySelector('#add-site').addEventListener('click', async () => {
     if(res.id) document.querySelector('#site').value = res.id;
     updateSnippet();
     loadStats();
+    closeSiteModal();
   } else {
     alert(res.error || 'Не удалось добавить сайт');
   }
