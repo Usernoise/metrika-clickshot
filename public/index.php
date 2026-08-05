@@ -12,6 +12,7 @@
 .sc-preview{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f7f7f7}.sc-preview-head{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border-bottom:1px solid var(--line);font:10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.sc-preview-stage{position:relative;min-height:175px;padding:18px 12px 12px;display:flex;align-items:flex-end;background:radial-gradient(#ddd .7px,transparent .7px);background-size:10px 10px}.sc-banner{width:100%;border-radius:8px;padding:12px;background:var(--sc-dark,#0a0a0a);color:#fff;box-shadow:0 8px 18px rgba(10,10,10,.16);transition:background .2s ease}.sc-banner-top{display:flex;align-items:center;gap:7px;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase}.sc-banner-mark{width:8px;height:8px;border-radius:50%;background:var(--sc-accent,#c5ff1a);box-shadow:0 0 0 3px color-mix(in srgb,var(--sc-accent,#c5ff1a) 22%,transparent)}.sc-banner p{font-size:11px;line-height:1.4;margin:9px 0 11px;color:#e5e5e5}.sc-banner-actions{display:flex;gap:7px}.sc-banner button{border:0;border-radius:4px;padding:6px 8px;font:500 10px var(--font);background:var(--sc-accent,#c5ff1a);color:var(--sc-accent-text,#0a0a0a)}.sc-banner .sc-link{background:transparent;color:#fff;text-decoration:underline;text-underline-offset:2px}.sc-preview.is-off{opacity:.48}.sc-preview.is-off .sc-preview-stage:after{content:'Включите Slide Cookie для показа баннера';position:absolute;font:10px var(--mono);color:var(--muted)}
 .site-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(10,10,10,.44);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease}.site-modal.is-open{opacity:1}.site-modal-card{width:min(100%,460px);padding:22px;border-radius:12px;background:#fff;box-shadow:0 24px 60px rgba(10,10,10,.22);transform:translateY(10px);transition:transform .22s ease}.site-modal.is-open .site-modal-card{transform:translateY(0)}.site-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.site-modal-head h2{font-size:24px;margin:7px 0 0}.site-modal-close{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted);font-size:21px;line-height:1}.site-modal-card>.muted{margin:14px 0 18px}.modal-field{display:grid;gap:6px;margin:12px 0;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#404040}.modal-field span{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.site-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 .snippet-actions{align-items:center;gap:8px}.snippet-status{margin-right:auto;font:10px var(--mono);color:var(--muted)}.snippet-status.is-ok{color:#4b6d00}.snippet-status.is-error{color:var(--danger)}
+.cards{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.cards .card:last-child{border-right:0}.collection-item.is-dependent{opacity:.48;cursor:not-allowed}.collection-item.is-dependent input{pointer-events:none}.collection-status.is-warning{color:var(--danger)}
 </style>
 </head>
 <body class="fc-app">
@@ -42,21 +43,21 @@
 <main class="main">
 <div class="error" id="error"></div>
 
-<section class="cards" aria-label="Ключевые метрики">
-  <div class="card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
-  <div class="card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
-  <div class="card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div></div>
+<section class="cards" id="metrics-cards" aria-label="Ключевые метрики">
+  <div class="card" id="pageviews-card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
+  <div class="card" id="visits-card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
+  <div class="card" id="depth-card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div></div>
 </section>
 
-<section class="panel chart-panel">
+<section class="panel chart-panel" id="chart-panel">
   <div class="panel-header"><h2>Динамика просмотров</h2><div>
     <button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button>
   </div></div><div class="chart" id="chart"></div>
 </section>
 
-<div class="grid">
-<section class="panel table-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Страница</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
-<section class="panel table-panel"><h2>Источники</h2><table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table></section>
+<div class="grid" id="detail-panels">
+<section class="panel table-panel" id="pages-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Страница</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
+<section class="panel table-panel" id="referrers-panel"><h2>Источники</h2><table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table></section>
 </div>
 <div class="tech-grid" id="tech-panels" hidden>
 <section class="panel table-panel"><h2>Браузеры</h2><table><thead><tr><th>Браузер</th><th class="num">Просмотры</th></tr></thead><tbody id="browsers"></tbody></table></section>
@@ -177,6 +178,19 @@ function renderCollectionSettings(){
     : 'Сначала выберите сайт.';
 }
 
+function applyCollectionVisibility(collection){
+  const enabled = collection || {pageviews:true, pages:true, referrers:true, visits:true, tech:false};
+  document.querySelector('#pageviews-card').hidden = !enabled.pageviews;
+  document.querySelector('#visits-card').hidden = !enabled.visits;
+  document.querySelector('#depth-card').hidden = !(enabled.pageviews && enabled.visits);
+  document.querySelector('#metrics-cards').hidden = !(enabled.pageviews || enabled.visits);
+  document.querySelector('#chart-panel').hidden = !enabled.pageviews;
+  document.querySelector('#pages-panel').hidden = !enabled.pages;
+  document.querySelector('#referrers-panel').hidden = !enabled.referrers;
+  document.querySelector('#detail-panels').hidden = !(enabled.pages || enabled.referrers);
+  document.querySelector('#tech-panels').hidden = !enabled.tech;
+}
+
 function updateSnippet(){
   const select = document.querySelector('#site');
   const id = (select && select.value) ? select.value : 'SITE_ID';
@@ -270,6 +284,7 @@ async function loadStats(){
     const r = await fetch(url, {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
+    applyCollectionVisibility(d.collection);
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
     document.querySelector('#depth').textContent = String(d.totals.depth).replace('.',',');
@@ -288,8 +303,6 @@ async function loadStats(){
       '<tr><td>' + esc(x.referrer) + '</td><td class="num">' + fmt(x.pageviews) + '</td><td class="num">' + fmt(x.visits) + '</td></tr>'
     ).join('');
 
-    const techEnabled = !!(d.collection && d.collection.tech);
-    document.querySelector('#tech-panels').hidden = !techEnabled;
     const techRows = (rows) => (rows || []).map(x =>
       '<tr><td>' + esc(x.label) + '</td><td class="num">' + fmt(x.pageviews) + '</td></tr>'
     ).join('');

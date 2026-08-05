@@ -57,22 +57,23 @@ try {
     $queries = [
     ];
 
-    if ($collection['pageviews']) {
+    if ($collection['pageviews'] || $collection['visits']) {
+        $pageview = $collection['pageviews'] ? 1 : 0;
         array_push(
             $queries,
             [
                 'INSERT INTO daily_stats(site_id, stat_date, pageviews, visits)
-                 VALUES(:site,:date,1,:visits)
+                 VALUES(:site,:date,:pageviews,:visits)
                  ON CONFLICT(site_id,stat_date)
-                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
-                [':site' => $siteId, ':date' => $day, ':visits' => $visit]
+                 DO UPDATE SET pageviews=pageviews+excluded.pageviews, visits=visits+excluded.visits',
+                [':site' => $siteId, ':date' => $day, ':pageviews' => $pageview, ':visits' => $visit]
             ],
             [
                 'INSERT INTO hourly_stats(site_id, stat_hour, pageviews, visits)
-                 VALUES(:site,:hour,1,:visits)
+                 VALUES(:site,:hour,:pageviews,:visits)
                  ON CONFLICT(site_id,stat_hour)
-                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
-                [':site' => $siteId, ':hour' => $hour, ':visits' => $visit]
+                 DO UPDATE SET pageviews=pageviews+excluded.pageviews, visits=visits+excluded.visits',
+                [':site' => $siteId, ':hour' => $hour, ':pageviews' => $pageview, ':visits' => $visit]
             ]
         );
     }
