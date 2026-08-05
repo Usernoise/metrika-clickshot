@@ -177,7 +177,8 @@ function renderCollectionSettings(){
 function updateSnippet(){
   const select = document.querySelector('#site');
   const id = (select && select.value) ? select.value : 'SITE_ID';
-  const cookieEnabled = !!currentSlideCookie().enabled;
+  const cookieToggle = document.querySelector('#slide-cookie-enabled');
+  const cookieEnabled = cookieToggle ? cookieToggle.checked : !!currentSlideCookie().enabled;
   document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '"' + (cookieEnabled ? '' : ' async') + '><\/script>';
 }
 
@@ -318,6 +319,7 @@ document.querySelector('#site').addEventListener('change', () => {
 document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) => {
   document.querySelector('#slide-cookie-config').hidden = !e.target.checked;
   updateSlidePreview();
+  updateSnippet();
 });
 
 ['#slide-accent-color', '#slide-dark-color', '#slide-accent-text-color'].forEach(selector => {
