@@ -64,6 +64,7 @@
 <section class="panel table-panel"><h2>Операционные системы</h2><table><thead><tr><th>ОС</th><th class="num">Просмотры</th></tr></thead><tbody id="operating-systems"></tbody></table></section>
 <section class="panel table-panel"><h2>Устройства</h2><table><thead><tr><th>Тип</th><th class="num">Просмотры</th></tr></thead><tbody id="devices"></tbody></table></section>
 </div>
+<section class="panel table-panel events-panel" id="events-panel" hidden><h2>События</h2><table><thead><tr><th>Событие</th><th class="num">Срабатывания</th><th class="num">Визиты</th><th class="num">Конверсия</th></tr></thead><tbody id="events"></tbody></table></section>
 
 <div class="section-title"><h2>Настройки счётчика</h2><span>Применяются к новым событиям</span></div>
 <section class="panel collection-panel" id="collection-panel">

@@ -130,6 +130,15 @@ CREATE TABLE IF NOT EXISTS device_daily_stats (
     PRIMARY KEY (site_id, stat_date, device)
 );
 
+CREATE TABLE IF NOT EXISTS event_daily_stats (
+    site_id TEXT NOT NULL,
+    stat_date TEXT NOT NULL,
+    event_name TEXT NOT NULL,
+    events INTEGER NOT NULL DEFAULT 0,
+    visits INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (site_id, stat_date, event_name)
+);
+
 CREATE INDEX IF NOT EXISTS idx_daily_site_date ON daily_stats(site_id, stat_date);
 CREATE INDEX IF NOT EXISTS idx_hourly_site_hour ON hourly_stats(site_id, stat_hour);
 CREATE INDEX IF NOT EXISTS idx_page_daily_site_date ON page_daily_stats(site_id, stat_date);
@@ -137,6 +146,7 @@ CREATE INDEX IF NOT EXISTS idx_referrer_daily_site_date ON referrer_daily_stats(
 CREATE INDEX IF NOT EXISTS idx_browser_daily_site_date ON browser_daily_stats(site_id, stat_date);
 CREATE INDEX IF NOT EXISTS idx_os_daily_site_date ON os_daily_stats(site_id, stat_date);
 CREATE INDEX IF NOT EXISTS idx_device_daily_site_date ON device_daily_stats(site_id, stat_date);
+CREATE INDEX IF NOT EXISTS idx_event_daily_site_date ON event_daily_stats(site_id, stat_date);
 SQL);
 
     $settingColumnNames = array_column(

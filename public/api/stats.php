@@ -177,6 +177,17 @@ if ($site['collection']['tech']) {
     }
 }
 
+$stmt = $pdo->prepare(
+    'SELECT event_name, SUM(events) AS events, SUM(visits) AS visits
+     FROM event_daily_stats
+     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+     GROUP BY event_name ORDER BY events DESC LIMIT 30'
+);
+$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+$events = array_map(static fn(array $row): array => [
+    'name' => $row['event_name'], 'events' => (int)$row['events'], 'visits' => (int)$row['visits'],
+], $stmt->fetchAll());
+
 $pageviews = array_sum(array_column($dailyMap, 'pageviews'));
 $visits = array_sum(array_column($dailyMap, 'visits'));
 
@@ -205,4 +216,5 @@ respond_json(200, [
         'visits' => (int)$r['visits']
     ], $referrers),
     'tech' => $tech,
+    'events' => $events,
 ]);

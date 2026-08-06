@@ -46,6 +46,10 @@ try {
     $referrer = clean_referrer($input['referrer'] ?? '', $domains);
     $collection = $site['collection'];
     $visit = $collection['visits'] && ($input['newVisit'] ?? false) === true ? 1 : 0;
+    $event = isset($input['event']) ? (string)$input['event'] : '';
+    if ($event !== '' && !preg_match('/^[a-z][a-z0-9_]{1,63}$/', $event)) {
+        throw new InvalidArgumentException('Некорректное событие');
+    }
 
     $now = new DateTimeImmutable('now');
     $day = $now->format('Y-m-d');
@@ -57,7 +61,15 @@ try {
     $queries = [
     ];
 
-    if ($collection['pageviews'] || $collection['visits']) {
+    if ($event !== '') {
+        $queries[] = [
+            'INSERT INTO event_daily_stats(site_id, stat_date, event_name, events, visits)
+             VALUES(:site,:date,:event,1,:visits)
+             ON CONFLICT(site_id,stat_date,event_name)
+             DO UPDATE SET events=events+1, visits=visits+excluded.visits',
+            [':site' => $siteId, ':date' => $day, ':event' => $event, ':visits' => $visit]
+        ];
+    } elseif ($collection['pageviews'] || $collection['visits']) {
         $pageview = $collection['pageviews'] ? 1 : 0;
         array_push(
             $queries,

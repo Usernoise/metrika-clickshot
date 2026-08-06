@@ -411,6 +411,13 @@
 
     function trackGoal(goalName) {
         pendingGoals.push(goalName);
+        try {
+            if (window.ClickShotMetrika && typeof window.ClickShotMetrika.goal === 'function') {
+                window.ClickShotMetrika.goal(goalName);
+            } else {
+                (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(goalName);
+            }
+        } catch (e) {}
         flushGoals();
     }
 
@@ -545,6 +552,7 @@
                 text-decoration: underline !important;
                 text-underline-offset: 2px !important;
             `;
+            policyLink.addEventListener('click', function () { trackGoal('cookie_policy_opened'); });
             description.appendChild(policyLink);
         } else {
             description.appendChild(document.createTextNode(policyText));
@@ -783,6 +791,7 @@
 
         let isDragging = false;
         let accepted = false;
+        let startedTracked = false;
         let activePointerId = null;
         let startX = 0;
         let currentX = 0;
@@ -894,6 +903,11 @@
 
         function onStart(e) {
             if (accepted || isDragging) return;
+
+            if (!startedTracked) {
+                startedTracked = true;
+                trackGoal('cookie_consent_started');
+            }
 
             const x = clientXOf(e);
             if (x === null) return;
