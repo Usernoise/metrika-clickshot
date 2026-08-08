@@ -13,6 +13,8 @@
 .site-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(10,10,10,.44);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease}.site-modal.is-open{opacity:1}.site-modal-card{width:min(100%,460px);padding:22px;border-radius:12px;background:#fff;box-shadow:0 24px 60px rgba(10,10,10,.22);transform:translateY(10px);transition:transform .22s ease}.site-modal.is-open .site-modal-card{transform:translateY(0)}.site-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.site-modal-head h2{font-size:24px;margin:7px 0 0}.site-modal-close{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted);font-size:21px;line-height:1}.site-modal-card>.muted{margin:14px 0 18px}.modal-field{display:grid;gap:6px;margin:12px 0;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#404040}.modal-field span{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.site-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 .snippet-actions{align-items:center;gap:8px}.snippet-status{margin-right:auto;font:10px var(--mono);color:var(--muted)}.snippet-status.is-ok{color:#4b6d00}.snippet-status.is-error{color:var(--danger)}
 .cards{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.cards .card:last-child{border-right:0}.collection-item.is-dependent{opacity:.48;cursor:not-allowed}.collection-item.is-dependent input{pointer-events:none}.collection-status.is-warning{color:var(--danger)}
+.chart-controls{display:flex;align-items:center;gap:10px}.metric-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{border:0;border-radius:4px;padding:5px 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}
+@media(max-width:680px){.chart-controls{flex-direction:column;align-items:flex-end;gap:3px}}
 </style>
 </head>
 <body class="fc-app">
@@ -50,9 +52,7 @@
 </section>
 
 <section class="panel chart-panel" id="chart-panel">
-  <div class="panel-header"><h2>Динамика просмотров</h2><div>
-    <button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button>
-  </div></div><div class="chart" id="chart"></div>
+  <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
 </section>
 
 <div class="grid" id="detail-panels">
@@ -122,6 +122,7 @@
 
 <script>
 let currentGroup = 'day';
+let currentMetric = 'visits';
 let sitesById = {};
 
 function fmt(v){
@@ -290,10 +291,10 @@ async function loadStats(){
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
     document.querySelector('#depth').textContent = String(d.totals.depth).replace('.',',');
     
-    const max = Math.max(1, ...(d.daily || []).map(x => x.pageviews));
+    const max = Math.max(1, ...(d.daily || []).map(x => Number(x[currentMetric] || 0)));
     
     document.querySelector('#chart').innerHTML = (d.daily || []).map(x => 
-      '<div class="bar-wrap" data-tip="' + esc(x.label) + ': ' + fmt(x.pageviews) + '"><div class="bar" style="height:' + Math.max(1, Math.round(x.pageviews/max*100)) + '%"></div></div>'
+      '<div class="bar-wrap" data-tip="' + esc(x.label) + ': ' + fmt(x[currentMetric]) + '"><div class="bar" style="height:' + Math.max(1, Math.round(Number(x[currentMetric] || 0)/max*100)) + '%"></div></div>'
     ).join('');
     
     document.querySelector('#pages').innerHTML = (d.pages || []).map(x => 
@@ -322,6 +323,19 @@ document.querySelectorAll('.btn-group').forEach(btn => {
     document.querySelectorAll('.btn-group').forEach(b => b.classList.remove('active'));
     e.target.classList.add('active');
     currentGroup = e.target.dataset.group;
+    loadStats();
+  });
+});
+
+document.querySelectorAll('.metric-tab').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.metric-tab').forEach(tab => {
+      tab.classList.remove('active');
+      tab.setAttribute('aria-selected', 'false');
+    });
+    e.currentTarget.classList.add('active');
+    e.currentTarget.setAttribute('aria-selected', 'true');
+    currentMetric = e.currentTarget.dataset.metric;
     loadStats();
   });
 });
