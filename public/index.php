@@ -15,6 +15,7 @@
 .cards{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.cards .card:last-child{border-right:0}.collection-item.is-dependent{opacity:.48;cursor:not-allowed}.collection-item.is-dependent input{pointer-events:none}.collection-status.is-warning{color:var(--danger)}
 .chart-controls{display:flex;align-items:center;gap:10px}.metric-switch{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{border:0;border-radius:4px;padding:5px 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}
 @media(max-width:680px){.chart-controls{flex-direction:column;align-items:flex-end;gap:3px}}
+.source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;min-width:210px;max-height:220px;overflow:auto;padding:7px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter[hidden]{display:none!important}
 </style>
 </head>
 <body class="fc-app">
@@ -52,7 +53,7 @@
 </section>
 
 <section class="panel chart-panel" id="chart-panel">
-  <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
+  <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><details class="source-filter" id="source-filter"><summary id="source-filter-label">Источники: все</summary><div class="source-options" id="source-options"></div></details><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
 </section>
 
 <div class="grid" id="detail-panels">
@@ -123,6 +124,7 @@
 <script>
 let currentGroup = 'day';
 let currentMetric = 'visits';
+let selectedSources = null;
 let sitesById = {};
 
 function fmt(v){
@@ -137,6 +139,24 @@ function esc(v){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function syncSourceFilter(referrers, enabled){
+  const filter = document.querySelector('#source-filter');
+  const options = document.querySelector('#source-options');
+  const names = (referrers || []).map(item => item.referrer);
+  filter.hidden = !enabled || names.length === 0;
+  if(!enabled || names.length === 0) return;
+  if(selectedSources === null) selectedSources = new Set(names);
+  else selectedSources = new Set(names.filter(name => selectedSources.has(name)));
+  options.innerHTML = names.map(name => '<label class="source-option"><input type="checkbox" value="' + esc(name) + '"' + (selectedSources.has(name) ? ' checked' : '') + '>' + esc(name) + '</label>').join('');
+  options.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
+    const checked = Array.from(options.querySelectorAll('input:checked')).map(item => item.value);
+    selectedSources = checked.length === names.length || checked.length === 0 ? null : new Set(checked);
+    document.querySelector('#source-filter-label').textContent = selectedSources === null ? 'Источники: все' : 'Источники: ' + selectedSources.size;
+    loadStats();
+  }));
+  document.querySelector('#source-filter-label').textContent = selectedSources === null || selectedSources.size === names.length ? 'Источники: все' : 'Источники: ' + selectedSources.size;
 }
 
 async function loadSites(){
@@ -281,12 +301,14 @@ async function loadStats(){
   } else {
     url += '&days=' + encodeURIComponent(daysVal);
   }
+  if(selectedSources && selectedSources.size) url += '&sources=' + encodeURIComponent(Array.from(selectedSources).join(','));
 
   try{
     const r = await fetch(url, {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     applyCollectionVisibility(d.collection);
+    syncSourceFilter(d.referrers, !!(d.collection && d.collection.referrers));
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
     document.querySelector('#depth').textContent = String(d.totals.depth).replace('.',',');
@@ -341,6 +363,7 @@ document.querySelectorAll('.metric-tab').forEach(btn => {
 });
 
 document.querySelector('#site').addEventListener('change', () => {
+  selectedSources = null;
   renderCollectionSettings();
   renderSlideCookieSettings();
   updateSnippet();

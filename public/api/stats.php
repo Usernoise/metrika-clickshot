@@ -55,6 +55,12 @@ if ($fromDate !== null) {
 $start = $fromDate->format('Y-m-d');
 $end = $toDate->format('Y-m-d');
 
+$sourceFilter = array_values(array_unique(array_filter(array_map(
+    static fn($source) => trim((string)$source),
+    explode(',', (string)($_GET['sources'] ?? ''))
+))));
+$sourceFilter = array_slice($sourceFilter, 0, 50);
+
 $pdo = db();
 
 $stmt = $pdo->prepare(
@@ -84,6 +90,24 @@ while ($date <= $toDate) {
         'visits' => $map[$key]['visits'] ?? 0,
     ];
     $date = $date->modify('+1 day');
+}
+
+if ($sourceFilter) {
+    $placeholders = implode(',', array_fill(0, count($sourceFilter), '?'));
+    $sourceStmt = $pdo->prepare(
+        "SELECT stat_date, SUM(pageviews) AS pageviews, SUM(visits) AS visits
+         FROM referrer_daily_stats
+         WHERE site_id = ? AND stat_date >= ? AND stat_date <= ? AND referrer IN ({$placeholders})
+         GROUP BY stat_date"
+    );
+    $sourceStmt->execute(array_merge([$siteId, $start, $end], $sourceFilter));
+    $sourceMap = [];
+    foreach ($sourceStmt->fetchAll() as $row) {
+        $sourceMap[$row['stat_date']] = ['pageviews' => (int)$row['pageviews'], 'visits' => (int)$row['visits']];
+    }
+    foreach ($dailyMap as $dateKey => $_) {
+        $dailyMap[$dateKey] = $sourceMap[$dateKey] ?? ['pageviews' => 0, 'visits' => 0];
+    }
 }
 
 // Агрегация в зависимости от $groupBy
