@@ -58,7 +58,7 @@ header h1{margin-top:0}
 </section>
 
 <div class="grid" id="detail-panels">
-<section class="panel table-panel" id="pages-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Страница</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
+<section class="panel table-panel" id="pages-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Путь / шаблон</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
 <section class="panel table-panel" id="referrers-panel"><h2>Источники</h2><table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table></section>
 </div>
 <div class="tech-grid" id="tech-panels" hidden>

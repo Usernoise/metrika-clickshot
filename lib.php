@@ -264,8 +264,12 @@ function clean_path(mixed $value): string
         $isEmail = filter_var(rawurldecode($segment), FILTER_VALIDATE_EMAIL) !== false;
         $isUuid = preg_match('/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i', $segment);
         $isLongNumber = preg_match('/^\d{5,}$/', $segment);
-        $isToken = preg_match('/^[A-Za-z0-9_-]{24,}$/', $segment);
-        if ($isEmail || $isUuid || $isLongNumber || $isToken) {
+        // Длинные SEO-slug'и (например, nazvanie-kursa-s-podrobnym-opisaniem)
+        // не являются идентификаторами и должны оставаться читаемыми в отчёте.
+        // Маскируем только непрозрачные смешанные токены с цифрами или подчёркиваниями.
+        $isOpaqueToken = preg_match('/^[A-Za-z0-9_-]{24,}$/', $segment)
+            && (preg_match('/\d/', $segment) || str_contains($segment, '_'));
+        if ($isEmail || $isUuid || $isLongNumber || $isOpaqueToken) {
             $segments[$index] = ':id';
         }
     }
