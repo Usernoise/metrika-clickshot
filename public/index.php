@@ -16,13 +16,14 @@
 .chart-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:30px}.chart-controls>div:last-child{display:flex;align-items:center;height:30px}.metric-switch{display:inline-flex;align-items:center;gap:2px;height:30px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{display:inline-flex;align-items:center;height:24px;border:0;border-radius:4px;padding:0 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}.chart-controls .btn-group{display:inline-flex;align-items:center;height:30px;padding:0 9px}
 @media(max-width:760px){.chart-controls{flex-wrap:wrap;gap:6px}.panel-header:has(.chart-controls){align-items:flex-start}.chart-controls>div:last-child{margin-left:auto}}@media(max-width:480px){.chart-controls{justify-content:flex-start}.chart-controls>div:last-child{margin-left:0}}
 .source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;min-width:210px;max-height:220px;overflow:auto;padding:7px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter[hidden]{display:none!important}
+header h1{margin-top:0}
 </style>
 </head>
 <body class="fc-app">
 <div class="wrap">
   <nav class="app-nav"><div class="brand"><div class="logo">CS</div>ClickShot <span class="muted">/ Metrika</span></div><span class="nav-tag">privacy-first analytics</span></nav>
   <header>
-    <div><div class="eyebrow">Аналитика сайта</div><h1>Статистика без слежки</h1><div class="muted">Агрегированные данные о трафике — без пользовательских идентификаторов.</div></div>
+    <div><h1>Статистика сайта</h1><div class="muted">Агрегированные данные о трафике — без пользовательских идентификаторов.</div></div>
     <div class="controls">
     <select id="site"></select>
     <select id="days">
