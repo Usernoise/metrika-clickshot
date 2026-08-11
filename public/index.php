@@ -16,6 +16,7 @@
 .chart-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:30px}.chart-controls>div:last-child{display:flex;align-items:center;height:30px}.metric-switch{display:inline-flex;align-items:center;gap:2px;height:30px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{display:inline-flex;align-items:center;height:24px;border:0;border-radius:4px;padding:0 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}.chart-controls .btn-group{display:inline-flex;align-items:center;height:30px;padding:0 9px}
 @media(max-width:760px){.chart-controls{flex-wrap:wrap;gap:6px}.panel-header:has(.chart-controls){align-items:flex-start}.chart-controls>div:last-child{margin-left:auto}}@media(max-width:480px){.chart-controls{justify-content:flex-start}.chart-controls>div:last-child{margin-left:0}}
 .source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;min-width:210px;max-height:220px;overflow:auto;padding:7px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter[hidden]{display:none!important}
+.cookie-config select{text-transform:none}.slide-key-hint{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.cookie-config input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed}
 header h1{margin-top:0}
 </style>
 </head>
@@ -87,8 +88,8 @@ header h1{margin-top:0}
   <div class="cookie-config" id="slide-cookie-config" hidden>
     <label>Ссылка на политику<input id="slide-policy-url" type="url" placeholder="/privacy или https://site.ru/privacy"></label>
     <label>ID Яндекс.Метрики <span class="muted">необязательно</span><input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
-    <label>Параметр условия показа<input id="slide-param" placeholder="always"></label>
-    <label>Значение параметра<input id="slide-key" placeholder="пусто для always"></label>
+    <label>Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
+    <label>Значение параметра<input id="slide-key" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
     <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
     <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
     <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
@@ -238,6 +239,19 @@ function updateSlidePreview(){
   document.querySelector('#slide-preview-state').textContent = enabled ? 'как на сайте' : 'выключен';
 }
 
+function syncSlideParamField(){
+  const param = document.querySelector('#slide-param');
+  const key = document.querySelector('#slide-key');
+  const hint = document.querySelector('#slide-key-hint');
+  const always = param.value === 'always';
+  key.disabled = always;
+  if(always) key.value = '';
+  key.placeholder = always ? 'Не требуется' : 'Введите значение параметра';
+  hint.textContent = always
+    ? 'Для «Всегда показывать» не требуется.'
+    : 'Баннер появится, когда параметр в URL равен этому значению.';
+}
+
 function renderSlideCookieSettings(){
   const c = currentSlideCookie();
   document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
@@ -252,6 +266,7 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
   document.querySelector('#slide-cookie-status').textContent = c.enabled ? 'Версия согласия: ' + (c.version || 1) : 'Slide Cookie выключен.';
+  syncSlideParamField();
   updateSlidePreview();
 }
 
@@ -379,6 +394,8 @@ document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) =
   updateSlidePreview();
   updateSnippet();
 });
+
+document.querySelector('#slide-param').addEventListener('change', syncSlideParamField);
 
 ['#slide-accent-color', '#slide-dark-color', '#slide-accent-text-color'].forEach(selector => {
   document.querySelector(selector).addEventListener('input', updateSlidePreview);
