@@ -57,7 +57,14 @@ if ($method === 'POST') {
             $id = $slug . '_' . substr(bin2hex(random_bytes(4)), 0, 6);
         }
 
-        $stmt = db()->prepare(
+        // Validate everything before changing the database. In particular,
+        // Slide Cookie validation may fail after the site fields are valid.
+        $settings = clean_collection_settings($input['collection'] ?? null);
+        $slideCookie = clean_slide_cookie_settings($input['slide_cookie'] ?? null);
+        $pdo = db();
+        $pdo->beginTransaction();
+
+        $stmt = $pdo->prepare(
             'INSERT INTO sites(id,name,domains_json,created_at,is_active)
              VALUES(:id,:name,:domains,:created_at,1)'
         );
@@ -68,9 +75,7 @@ if ($method === 'POST') {
             ':created_at' => date(DATE_ATOM),
         ]);
 
-        $settings = clean_collection_settings($input['collection'] ?? null);
-        $slideCookie = clean_slide_cookie_settings($input['slide_cookie'] ?? null);
-        $stmt = db()->prepare(
+        $stmt = $pdo->prepare(
             'INSERT INTO site_collection_settings(
                 site_id, collect_pageviews, collect_pages, collect_referrers, collect_visits, collect_tech,
                 slide_cookie_enabled, slide_cookie_policy_url, slide_cookie_param, slide_cookie_key,
@@ -95,8 +100,12 @@ if ($method === 'POST') {
             ':updated_at' => date(DATE_ATOM),
         ]);
 
+        $pdo->commit();
         respond_json(201, ['ok' => true, 'id' => $id]);
     } catch (Throwable $e) {
+        if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         respond_json(400, ['ok' => false, 'error' => $e->getMessage() ?: 'Не удалось создать сайт']);
     }
 }
@@ -168,37 +177,31 @@ if ($method === 'DELETE') {
             throw new InvalidArgumentException('Не указан ID сайта');
         }
 
-        db()->beginTransaction();
+        $pdo = db();
+        $pdo->beginTransaction();
         
-        $stmt = db()->prepare('DELETE FROM sites WHERE id = :id');
-        $stmt->execute([':id' => $id]);
-
-        $stmt = db()->prepare('DELETE FROM site_collection_settings WHERE site_id = :id');
-        $stmt->execute([':id' => $id]);
-
-        $stmt = db()->prepare('DELETE FROM daily_stats WHERE site_id = :id');
-        $stmt->execute([':id' => $id]);
-
-        $stmt = db()->prepare('DELETE FROM hourly_stats WHERE site_id = :id');
-        $stmt->execute([':id' => $id]);
-
-        $stmt = db()->prepare('DELETE FROM page_daily_stats WHERE site_id = :id');
-        $stmt->execute([':id' => $id]);
-
-        $stmt = db()->prepare('DELETE FROM referrer_daily_stats WHERE site_id = :id');
-        $stmt->execute([':id' => $id]);
-
-        foreach (['browser_daily_stats', 'os_daily_stats', 'device_daily_stats'] as $table) {
-            $stmt = db()->prepare("DELETE FROM {$table} WHERE site_id = :id");
+        foreach ([
+            'site_collection_settings',
+            'daily_stats',
+            'hourly_stats',
+            'page_daily_stats',
+            'referrer_daily_stats',
+            'browser_daily_stats',
+            'os_daily_stats',
+            'device_daily_stats',
+            'event_daily_stats',
+            'sites',
+        ] as $table) {
+            $stmt = $pdo->prepare("DELETE FROM {$table} WHERE " . ($table === 'sites' ? 'id' : 'site_id') . ' = :id');
             $stmt->execute([':id' => $id]);
         }
 
-        db()->commit();
+        $pdo->commit();
 
         respond_json(200, ['ok' => true]);
     } catch (Throwable $e) {
-        if (db()->inTransaction()) {
-            db()->rollBack();
+        if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+            $pdo->rollBack();
         }
         respond_json(400, ['ok' => false, 'error' => $e->getMessage() ?: 'Не удалось удалить сайт']);
     }

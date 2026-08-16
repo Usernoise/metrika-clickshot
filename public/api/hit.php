@@ -51,7 +51,11 @@ try {
         throw new InvalidArgumentException('Некорректное событие');
     }
 
-    $now = new DateTimeImmutable('now');
+    // db() is initialized only below, therefore relying on PHP's process-wide
+    // default timezone here can put a hit into a different day than the
+    // dashboard uses. Keep the aggregation bucket tied to application config.
+    $timezone = new DateTimeZone(app_config()['timezone']);
+    $now = new DateTimeImmutable('now', $timezone);
     $day = $now->format('Y-m-d');
     $hour = $now->format('Y-m-d H:00:00');
 
