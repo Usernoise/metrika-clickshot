@@ -18,6 +18,7 @@
 .source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;width:250px;padding:9px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-options input[type="search"]{width:100%;min-height:30px;padding:5px 7px;font-size:11px}.source-option-list{max-height:190px;overflow:auto;margin:7px -2px}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter-actions{display:flex;align-items:center;gap:5px;padding-top:7px;border-top:1px solid var(--line)}.source-filter-actions button{min-height:28px;padding:4px 7px;border:1px solid var(--line);border-radius:5px;background:#fff;font:10px var(--mono);color:var(--ink)}.source-filter-actions button:last-child{margin-left:auto;background:var(--lime);border-color:var(--lime)}.source-filter[hidden]{display:none!important}
 .cookie-config select{text-transform:none}.slide-key-hint{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.cookie-config input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed}
 header h1{margin-top:0}
+.app-tabs{display:flex;gap:4px;margin:0 0 18px;padding:5px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}.app-tab{flex:1;min-height:38px;padding:8px 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:600 11px var(--mono);letter-spacing:.04em;text-transform:uppercase}.app-tab:hover{color:var(--ink);background:var(--soft)}.app-tab.active{background:var(--ink);color:var(--lime);box-shadow:0 2px 6px rgba(16,16,15,.16)}.app-tab-panel[hidden]{display:none!important}.danger-zone{margin-top:18px;border-color:#f0c7c3}.danger-zone .panel-header{border-color:#f0c7c3}.danger-zone-body{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px}.danger-zone-body .muted{max-width:550px}@media(max-width:640px){.app-tabs{gap:2px;padding:4px}.app-tab{min-height:36px;padding:7px 5px;font-size:9px}.danger-zone-body{align-items:stretch;flex-direction:column}}
 </style>
 <style media="not all">
 @import url('https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600&display=swap');
@@ -66,12 +67,13 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
     </div>
     <button id="add-site-open" class="fc-btn fc-btn-primary">+ Добавить сайт</button>
     <button id="reload" class="fc-btn fc-btn-outline">Обновить</button>
-    <button id="delete-site" class="fc-btn btn-delete" title="Удалить выбранный сайт">Удалить</button>
   </div>
 </header>
 
 <main class="main">
 <div class="error" id="error"></div>
+<nav class="app-tabs" role="tablist" aria-label="Разделы счётчика"><button class="app-tab active" type="button" role="tab" aria-selected="true" data-tab="stats">Статистика</button><button class="app-tab" type="button" role="tab" aria-selected="false" data-tab="settings">Настройки счётчика</button><button class="app-tab" type="button" role="tab" aria-selected="false" data-tab="cookie">Slide Cookie</button></nav>
+<div class="app-tab-panel" data-tab-panel="stats" role="tabpanel">
 
 <section class="cards" id="metrics-cards" aria-label="Ключевые метрики">
   <div class="card" id="pageviews-card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
@@ -93,7 +95,9 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 <section class="panel table-panel"><h2>Устройства</h2><table><thead><tr><th>Тип</th><th class="num">Просмотры</th></tr></thead><tbody id="devices"></tbody></table></section>
 </div>
 <section class="panel table-panel events-panel" id="events-panel" hidden><h2>События</h2><table><thead><tr><th>Событие</th><th class="num">Срабатывания</th><th class="num">Визиты</th><th class="num">Конверсия</th></tr></thead><tbody id="events"></tbody></table></section>
+</div>
 
+<div class="app-tab-panel" data-tab-panel="settings" role="tabpanel" hidden>
 <div class="section-title"><h2>Настройки счётчика</h2><span>Применяются к новым событиям</span></div>
 <section class="panel collection-panel" id="collection-panel">
   <div class="settings-head"><h2>Состав собираемой статистики</h2><div class="muted">Сырые IP и User-Agent не сохраняются.</div></div>
@@ -106,7 +110,9 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
   </div>
   <div class="collection-footer"><span class="collection-status" id="collection-status"></span><button id="save-collection" class="fc-btn fc-btn-primary">Сохранить настройки</button></div>
 </section>
+</div>
 
+<div class="app-tab-panel" data-tab-panel="cookie" role="tabpanel" hidden>
 <section class="panel" id="slide-cookie-panel">
   <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Баннер согласия и опциональная блокировка Яндекс.Метрики.</div></div></div>
   <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">При включении вставьте обновлённый код в <code>&lt;head&gt;</code> без <code>async</code>: так баннер успеет остановить Яндекс.Метрику.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Мы используем файлы cookie и обрабатываем персональные данные. Проведите слайдер вправо, чтобы дать согласие и подтвердить, что Вы ознакомлены с <a href="#">Политикой обработки персональных данных</a>.</p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Проведите вправо для согласия</span><span class="sc-preview-knob">→</span></div></div></div></aside></div>
@@ -123,7 +129,9 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
   </div></div>
   <div class="collection-footer" style="padding:0 16px 16px"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить Slide Cookie</button></div>
 </section>
+</div>
 
+<div class="app-tab-panel" data-tab-panel="settings" role="tabpanel" hidden>
 <section class="panel snippet-panel">
   <h2>Код подключения для выбранного сайта</h2>
   <div class="snippet-wrap">
@@ -135,6 +143,8 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
     </div>
   </div>
 </section>
+<section class="panel danger-zone"><div class="panel-header"><div><h2>Опасная зона</h2><div class="muted">Удаление счётчика необратимо и сотрёт всю накопленную статистику.</div></div></div><div class="danger-zone-body"><span class="muted">Перед удалением убедитесь, что код счётчика больше не используется на сайте.</span><button id="delete-site" class="fc-btn btn-delete" title="Удалить выбранный сайт">Удалить счётчик</button></div></section>
+</div>
 <p class="footnote">ClickShot Metrika · Агрегированная аналитика без пользовательских идентификаторов</p>
 </main>
 </div>
@@ -204,6 +214,20 @@ function syncSourceFilter(sources, enabled){
   };
   document.querySelector('#source-filter-label').textContent = selectedSources === null ? 'Источники: все' : 'Источники: ' + selectedSources.size;
 }
+
+document.querySelectorAll('.app-tab').forEach(button => {
+  button.addEventListener('click', () => {
+    const tab = button.dataset.tab;
+    document.querySelectorAll('.app-tab').forEach(item => {
+      const active = item === button;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+      panel.hidden = panel.dataset.tabPanel !== tab;
+    });
+  });
+});
 
 async function loadSites(){
   try {
