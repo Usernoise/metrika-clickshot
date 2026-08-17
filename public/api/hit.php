@@ -73,6 +73,15 @@ try {
              DO UPDATE SET events=events+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':event' => $event, ':visits' => $visit]
         ];
+        if ($collection['referrers']) {
+            $queries[] = [
+                'INSERT INTO source_event_daily_stats(site_id, stat_date, referrer, event_name, events, visits)
+                 VALUES(:site,:date,:referrer,:event,1,:visits)
+                 ON CONFLICT(site_id,stat_date,referrer,event_name)
+                 DO UPDATE SET events=events+1, visits=visits+excluded.visits',
+                [':site' => $siteId, ':date' => $day, ':referrer' => $referrer, ':event' => $event, ':visits' => $visit]
+            ];
+        }
     } elseif ($collection['pageviews'] || $collection['visits']) {
         $pageview = $collection['pageviews'] ? 1 : 0;
         array_push(
@@ -102,6 +111,15 @@ try {
              DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':path' => $path, ':visits' => $visit]
         ];
+        if ($collection['referrers']) {
+            $queries[] = [
+                'INSERT INTO source_page_daily_stats(site_id, stat_date, referrer, path, pageviews, visits)
+                 VALUES(:site,:date,:referrer,:path,1,:visits)
+                 ON CONFLICT(site_id,stat_date,referrer,path)
+                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
+                [':site' => $siteId, ':date' => $day, ':referrer' => $referrer, ':path' => $path, ':visits' => $visit]
+            ];
+        }
     }
 
     if ($collection['referrers']) {
@@ -117,10 +135,10 @@ try {
     if ($collection['tech']) {
         $tech = classify_user_agent();
         foreach ([
-            ['browser_daily_stats', 'browser', $tech['browser']],
-            ['os_daily_stats', 'os', $tech['os']],
-            ['device_daily_stats', 'device', $tech['device']],
-        ] as [$table, $column, $value]) {
+            ['browser_daily_stats', 'source_browser_daily_stats', 'browser', $tech['browser']],
+            ['os_daily_stats', 'source_os_daily_stats', 'os', $tech['os']],
+            ['device_daily_stats', 'source_device_daily_stats', 'device', $tech['device']],
+        ] as [$table, $sourceTable, $column, $value]) {
             $queries[] = [
                 "INSERT INTO {$table}(site_id, stat_date, {$column}, pageviews, visits)
                  VALUES(:site,:date,:value,1,:visits)
@@ -128,6 +146,15 @@ try {
                  DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits",
                 [':site' => $siteId, ':date' => $day, ':value' => $value, ':visits' => $visit]
             ];
+            if ($collection['referrers']) {
+                $queries[] = [
+                    "INSERT INTO {$sourceTable}(site_id, stat_date, referrer, {$column}, pageviews, visits)
+                     VALUES(:site,:date,:referrer,:value,1,:visits)
+                     ON CONFLICT(site_id,stat_date,referrer,{$column})
+                     DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits",
+                    [':site' => $siteId, ':date' => $day, ':referrer' => $referrer, ':value' => $value, ':visits' => $visit]
+                ];
+            }
         }
     }
 

@@ -15,7 +15,7 @@
 .cards{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}.cards .card:last-child{border-right:0}.collection-item.is-dependent{opacity:.48;cursor:not-allowed}.collection-item.is-dependent input{pointer-events:none}.collection-status.is-warning{color:var(--danger)}
 .chart-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:30px}.chart-controls>div:last-child{display:flex;align-items:center;height:30px}.metric-switch{display:inline-flex;align-items:center;gap:2px;height:30px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{display:inline-flex;align-items:center;height:24px;border:0;border-radius:4px;padding:0 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}.chart-controls .btn-group{display:inline-flex;align-items:center;height:30px;padding:0 9px}
 @media(max-width:760px){.chart-controls{flex-wrap:wrap;gap:6px}.panel-header:has(.chart-controls){align-items:flex-start}.chart-controls>div:last-child{margin-left:auto}}@media(max-width:480px){.chart-controls{justify-content:flex-start}.chart-controls>div:last-child{margin-left:0}}
-.source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;min-width:210px;max-height:220px;overflow:auto;padding:7px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter[hidden]{display:none!important}
+.source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;width:250px;padding:9px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-options input[type="search"]{width:100%;min-height:30px;padding:5px 7px;font-size:11px}.source-option-list{max-height:190px;overflow:auto;margin:7px -2px}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter-actions{display:flex;align-items:center;gap:5px;padding-top:7px;border-top:1px solid var(--line)}.source-filter-actions button{min-height:28px;padding:4px 7px;border:1px solid var(--line);border-radius:5px;background:#fff;font:10px var(--mono);color:var(--ink)}.source-filter-actions button:last-child{margin-left:auto;background:var(--lime);border-color:var(--lime)}.source-filter[hidden]{display:none!important}
 .cookie-config select{text-transform:none}.slide-key-hint{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.cookie-config input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed}
 header h1{margin-top:0}
 </style>
@@ -52,6 +52,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
     <div class="controls">
     <select id="site"></select>
     <select id="days">
+      <option value="1">Сегодня</option>
       <option value="7">7 дней</option>
       <option value="30" selected>30 дней</option>
       <option value="90">90 дней</option>
@@ -79,7 +80,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 </section>
 
 <section class="panel chart-panel" id="chart-panel">
-  <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><details class="source-filter" id="source-filter"><summary id="source-filter-label">Источники: все</summary><div class="source-options" id="source-options"></div></details><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
+  <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><details class="source-filter" id="source-filter"><summary id="source-filter-label">Источники: все</summary><div class="source-options"><input id="source-filter-search" type="search" placeholder="Найти источник" aria-label="Найти источник"><div class="source-option-list" id="source-options"></div><div class="source-filter-actions"><button type="button" id="source-filter-all">Все</button><button type="button" id="source-filter-reset">Сбросить</button><button type="button" id="source-filter-apply">Применить</button></div></div></details><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
 </section>
 
 <div class="grid" id="detail-panels">
@@ -151,6 +152,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 let currentGroup = 'day';
 let currentMetric = 'visits';
 let selectedSources = null;
+let pendingSources = null;
 let sitesById = {};
 
 function fmt(v){
@@ -167,22 +169,40 @@ function esc(v){
     .replace(/'/g, "&#039;");
 }
 
-function syncSourceFilter(referrers, enabled){
+function syncSourceFilter(sources, enabled){
   const filter = document.querySelector('#source-filter');
   const options = document.querySelector('#source-options');
-  const names = (referrers || []).map(item => item.referrer);
+  const names = sources || [];
   filter.hidden = !enabled || names.length === 0;
   if(!enabled || names.length === 0) return;
-  if(selectedSources === null) selectedSources = new Set(names);
-  else selectedSources = new Set(names.filter(name => selectedSources.has(name)));
-  options.innerHTML = names.map(name => '<label class="source-option"><input type="checkbox" value="' + esc(name) + '"' + (selectedSources.has(name) ? ' checked' : '') + '>' + esc(name) + '</label>').join('');
+  const activeSources = selectedSources === null ? names : names.filter(name => selectedSources.has(name));
+  pendingSources = new Set(activeSources);
+  options.innerHTML = names.map(name => '<label class="source-option"><input type="checkbox" value="' + esc(name) + '"' + (pendingSources.has(name) ? ' checked' : '') + '>' + esc(name) + '</label>').join('');
   options.querySelectorAll('input').forEach(input => input.addEventListener('change', () => {
-    const checked = Array.from(options.querySelectorAll('input:checked')).map(item => item.value);
-    selectedSources = checked.length === names.length || checked.length === 0 ? null : new Set(checked);
-    document.querySelector('#source-filter-label').textContent = selectedSources === null ? 'Источники: все' : 'Источники: ' + selectedSources.size;
-    loadStats();
+    pendingSources = new Set(Array.from(options.querySelectorAll('input:checked')).map(item => item.value));
   }));
-  document.querySelector('#source-filter-label').textContent = selectedSources === null || selectedSources.size === names.length ? 'Источники: все' : 'Источники: ' + selectedSources.size;
+  document.querySelector('#source-filter-all').onclick = () => {
+    pendingSources = new Set(names);
+    options.querySelectorAll('input').forEach(input => { input.checked = true; });
+  };
+  document.querySelector('#source-filter-reset').onclick = () => {
+    pendingSources = new Set(activeSources);
+    options.querySelectorAll('input').forEach(input => { input.checked = pendingSources.has(input.value); });
+  };
+  document.querySelector('#source-filter-apply').onclick = () => {
+    selectedSources = pendingSources.size === 0 || pendingSources.size === names.length ? null : new Set(pendingSources);
+    document.querySelector('#source-filter-label').textContent = selectedSources === null ? 'Источники: все' : 'Источники: ' + selectedSources.size;
+    filter.open = false;
+    loadStats();
+  };
+  const search = document.querySelector('#source-filter-search');
+  search.oninput = () => {
+    const query = search.value.trim().toLowerCase();
+    options.querySelectorAll('.source-option').forEach(option => {
+      option.hidden = query !== '' && !option.textContent.toLowerCase().includes(query);
+    });
+  };
+  document.querySelector('#source-filter-label').textContent = selectedSources === null ? 'Источники: все' : 'Источники: ' + selectedSources.size;
 }
 
 async function loadSites(){
@@ -348,7 +368,7 @@ async function loadStats(){
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     applyCollectionVisibility(d.collection);
-    syncSourceFilter(d.referrers, !!(d.collection && d.collection.referrers));
+    syncSourceFilter(d.available_sources, !!(d.collection && d.collection.referrers));
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
     document.querySelector('#depth').textContent = String(d.totals.depth).replace('.',',');
@@ -376,10 +396,7 @@ async function loadStats(){
 
     const eventsPanel = document.querySelector('#events-panel');
     const eventsBody = document.querySelector('#events');
-    // Event aggregates do not contain referrer dimensions, so showing them
-    // alongside a source-filtered report would imply a filter that was never
-    // applied. Keep the panel visible only for the complete report.
-    const showEvents = !selectedSources || selectedSources.size === 0;
+    const showEvents = true;
     const totalVisits = Number(d.totals && d.totals.visits || 0);
     eventsPanel.hidden = !showEvents;
     eventsBody.innerHTML = showEvents ? (d.events || []).map(x => {

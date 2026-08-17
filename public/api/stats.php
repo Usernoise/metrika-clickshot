@@ -157,42 +157,82 @@ if ($groupBy === 'week') {
 
 $pages = [];
 if ($site['collection']['pages']) {
-    $stmt = $pdo->prepare(
-        'SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
-         FROM page_daily_stats
-         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-         GROUP BY path ORDER BY pageviews DESC LIMIT 30'
-    );
-    $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    if ($sourceFilter) {
+        $placeholders = implode(',', array_fill(0, count($sourceFilter), '?'));
+        $stmt = $pdo->prepare(
+            "SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
+             FROM source_page_daily_stats
+             WHERE site_id = ? AND stat_date >= ? AND stat_date <= ? AND referrer IN ({$placeholders})
+             GROUP BY path ORDER BY pageviews DESC LIMIT 30"
+        );
+        $stmt->execute(array_merge([$siteId, $start, $end], $sourceFilter));
+    } else {
+        $stmt = $pdo->prepare(
+            'SELECT path, SUM(pageviews) pageviews, SUM(visits) visits
+             FROM page_daily_stats
+             WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+             GROUP BY path ORDER BY pageviews DESC LIMIT 30'
+        );
+        $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    }
     $pages = $stmt->fetchAll();
 }
 
 $referrers = [];
 if ($site['collection']['referrers']) {
-    $stmt = $pdo->prepare(
-        'SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
-         FROM referrer_daily_stats
+    $availableStmt = $pdo->prepare(
+        'SELECT referrer FROM referrer_daily_stats
          WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-         GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30'
+         GROUP BY referrer ORDER BY referrer'
     );
-    $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    $availableStmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    $availableSources = array_map(static fn(array $row): string => $row['referrer'], $availableStmt->fetchAll());
+    if ($sourceFilter) {
+        $placeholders = implode(',', array_fill(0, count($sourceFilter), '?'));
+        $stmt = $pdo->prepare(
+            "SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
+             FROM referrer_daily_stats
+             WHERE site_id = ? AND stat_date >= ? AND stat_date <= ? AND referrer IN ({$placeholders})
+             GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30"
+        );
+        $stmt->execute(array_merge([$siteId, $start, $end], $sourceFilter));
+    } else {
+        $stmt = $pdo->prepare(
+            'SELECT referrer, SUM(pageviews) pageviews, SUM(visits) visits
+             FROM referrer_daily_stats
+             WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+             GROUP BY referrer ORDER BY visits DESC, pageviews DESC LIMIT 30'
+        );
+        $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    }
     $referrers = $stmt->fetchAll();
 }
 
 $tech = ['browsers' => [], 'os' => [], 'devices' => []];
 if ($site['collection']['tech']) {
     foreach ([
-        'browsers' => ['browser_daily_stats', 'browser'],
-        'os' => ['os_daily_stats', 'os'],
-        'devices' => ['device_daily_stats', 'device'],
-    ] as $key => [$table, $column]) {
-        $stmt = $pdo->prepare(
-            "SELECT {$column} AS label, SUM(pageviews) AS pageviews, SUM(visits) AS visits
-             FROM {$table}
-             WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-             GROUP BY {$column} ORDER BY pageviews DESC LIMIT 20"
-        );
-        $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+        'browsers' => ['browser_daily_stats', 'source_browser_daily_stats', 'browser'],
+        'os' => ['os_daily_stats', 'source_os_daily_stats', 'os'],
+        'devices' => ['device_daily_stats', 'source_device_daily_stats', 'device'],
+    ] as $key => [$table, $sourceTable, $column]) {
+        if ($sourceFilter) {
+            $placeholders = implode(',', array_fill(0, count($sourceFilter), '?'));
+            $stmt = $pdo->prepare(
+                "SELECT {$column} AS label, SUM(pageviews) AS pageviews, SUM(visits) AS visits
+                 FROM {$sourceTable}
+                 WHERE site_id = ? AND stat_date >= ? AND stat_date <= ? AND referrer IN ({$placeholders})
+                 GROUP BY {$column} ORDER BY pageviews DESC LIMIT 20"
+            );
+            $stmt->execute(array_merge([$siteId, $start, $end], $sourceFilter));
+        } else {
+            $stmt = $pdo->prepare(
+                "SELECT {$column} AS label, SUM(pageviews) AS pageviews, SUM(visits) AS visits
+                 FROM {$table}
+                 WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+                 GROUP BY {$column} ORDER BY pageviews DESC LIMIT 20"
+            );
+            $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+        }
         $tech[$key] = array_map(static fn(array $row): array => [
             'label' => $row['label'],
             'pageviews' => (int)$row['pageviews'],
@@ -201,13 +241,24 @@ if ($site['collection']['tech']) {
     }
 }
 
-$stmt = $pdo->prepare(
-    'SELECT event_name, SUM(events) AS events, SUM(visits) AS visits
-     FROM event_daily_stats
-     WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
-     GROUP BY event_name ORDER BY events DESC LIMIT 30'
-);
-$stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+if ($sourceFilter) {
+    $placeholders = implode(',', array_fill(0, count($sourceFilter), '?'));
+    $stmt = $pdo->prepare(
+        "SELECT event_name, SUM(events) AS events, SUM(visits) AS visits
+         FROM source_event_daily_stats
+         WHERE site_id = ? AND stat_date >= ? AND stat_date <= ? AND referrer IN ({$placeholders})
+         GROUP BY event_name ORDER BY events DESC LIMIT 30"
+    );
+    $stmt->execute(array_merge([$siteId, $start, $end], $sourceFilter));
+} else {
+    $stmt = $pdo->prepare(
+        'SELECT event_name, SUM(events) AS events, SUM(visits) AS visits
+         FROM event_daily_stats
+         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+         GROUP BY event_name ORDER BY events DESC LIMIT 30'
+    );
+    $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+}
 $events = array_map(static fn(array $row): array => [
     'name' => $row['event_name'], 'events' => (int)$row['events'], 'visits' => (int)$row['visits'],
 ], $stmt->fetchAll());
@@ -239,6 +290,7 @@ respond_json(200, [
         'pageviews' => (int)$r['pageviews'],
         'visits' => (int)$r['visits']
     ], $referrers),
+    'available_sources' => $availableSources ?? [],
     'tech' => $tech,
     'events' => $events,
 ]);
