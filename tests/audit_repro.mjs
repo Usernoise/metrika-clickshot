@@ -104,16 +104,24 @@ try {
   const context = {
     URL, Blob, location:{href:'https://audit.example/page',pathname:'/page'},
     document:{currentScript:{src:base+'/counter.js?id=audit_site',dataset:{}},readyState:'complete',referrer:'https://search.example/query'},
-    window:{__clickShotBootstrap:{site:'audit_site',collection:{visits:true,pages:true,referrers:true}}},
+    window:{__clickShotBootstrap:{site:'audit_site',collection:{visits:true,pages:true,referrers:true}},ym:(...args)=>args},
     navigator:{sendBeacon:(url,blob)=>{beacons.push(blob);return false;}},
     sessionStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},
-    fetch:()=>{fetches++;return Promise.resolve({ok:true});}
+    fetch:()=>{fetches++;return Promise.resolve({ok:true});},
   };
   vm.runInNewContext(readFileSync(join(root,'public/counter.js'),'utf8'),context);
   await context.window.ClickShotMetrika.goal('test_goal');
   const goal = JSON.parse(await beacons[1].text());
   check('Goal carries enabled source context',goal.referrer===context.document.referrer,goal);
   check('sendBeacon false triggers fetch fallback',fetches>0,{beacons:beacons.length,fetches,visitMarked:storage.has('clickshot-metrika:audit_site:started')});
+  await context.window.ym(12345, 'reachGoal', 'metrika_goal');
+  const bridged = JSON.parse(await beacons.at(-1).text());
+  check('Existing Yandex reachGoal is collected without a second call',bridged.event === 'metrika_goal',bridged);
+  context.window.__clickShotSuppressYandexGoalBridge = 1;
+  const beforeSuppressed = beacons.length;
+  await context.window.ym(12345, 'reachGoal', 'cookie_consent_shown');
+  check('Slide Cookie Yandex forwarding does not duplicate its event',beacons.length === beforeSuppressed,{before:beforeSuppressed,after:beacons.length});
+  context.window.__clickShotSuppressYandexGoalBridge = 0;
   const disabledStorage = new Map();
   context.window.__clickShotBootstrap.collection={visits:false,pages:false,referrers:false};
   context.sessionStorage={getItem:k=>disabledStorage.get(k),setItem:(k,v)=>disabledStorage.set(k,v)};
@@ -125,6 +133,20 @@ try {
   vm.runInNewContext(readFileSync(join(root,'public/counter.js'),'utf8'),context);
   const delivered=await context.window.ClickShotMetrika.goal('offline_goal');
   check('Failed transports do not mark visits as sent',delivered===false && disabledStorage.size===0,{delivered,markers:disabledStorage.size});
+  const assigned = [];
+  const assignmentContext = {
+    URL, Blob, location:{href:'https://audit.example/page',pathname:'/page'},
+    document:{currentScript:{src:base+'/counter.js?id=audit_site',dataset:{}},readyState:'complete',referrer:''},
+    window:{__clickShotBootstrap:{site:'audit_site',collection:{visits:false,pages:false,referrers:false}}},
+    navigator:{sendBeacon:(url,blob)=>{assigned.push(blob);return true;}}, sessionStorage:{getItem:()=>null,setItem:()=>{}},
+    fetch:()=>Promise.resolve({ok:true}), Object,
+  };
+  vm.runInNewContext(readFileSync(join(root,'public/counter.js'),'utf8'),assignmentContext);
+  assignmentContext.window.ym = () => {};
+  assignmentContext.window.ym(12345, 'reachGoal', 'assigned_goal');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const assignedEvents = await Promise.all(assigned.map(blob => blob.text().then(text => JSON.parse(text))));
+  check('Yandex goal immediately after ym assignment is collected',assignedEvents.some(event => event.event === 'assigned_goal'),assignedEvents);
   const elements = new Map();
   const element = key => {
     if (!elements.has(key)) elements.set(key,{value:'',style:{},textContent:'',innerHTML:''});

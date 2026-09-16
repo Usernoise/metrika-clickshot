@@ -68,6 +68,66 @@
       if (typeof name !== "string" || !/^[a-z][a-z0-9_]{1,63}$/.test(name)) return Promise.resolve(false);
       return send(name).catch(() => false);
     };
+    // Existing Yandex Metrika targets become ClickShot events without adding a
+    // second call at every conversion point. The original ym call and return
+    // value are preserved; only a valid reachGoal command is observed.
+    const wrappedYm = new WeakSet();
+    const bridgeYandexGoal = args => {
+      if (window.__clickShotSuppressYandexGoalBridge) return;
+      const [, command, goal] = args;
+      if (command === "reachGoal" && typeof goal === "string") {
+        window.ClickShotMetrika.goal(goal);
+      }
+    };
+    const makeWrappedYm = original => {
+      const wrapped = function (...args) {
+        const result = original.apply(this, args);
+        try { bridgeYandexGoal(args); } catch (_) {}
+        return result;
+      };
+      wrappedYm.add(wrapped);
+      return wrapped;
+    };
+    const wrapYm = () => {
+      const original = window.ym;
+      if (typeof original !== "function" || wrappedYm.has(original)) return;
+      try { window.ym = makeWrappedYm(original); } catch (_) {}
+    };
+    // When ClickShot loads before the standard Metrika snippet, capture the
+    // snippet's assignment synchronously. A short polling fallback covers
+    // non-configurable global properties and tag.js replacing its queue.
+    const ymDescriptor = Object.getOwnPropertyDescriptor(window, "ym");
+    if ((!ymDescriptor || "value" in ymDescriptor) && (!ymDescriptor || ymDescriptor.configurable)) {
+      let ymValue = window.ym;
+      const assignYm = value => {
+        ymValue = typeof value === "function" && !wrappedYm.has(value) ? makeWrappedYm(value) : value;
+      };
+      try {
+        Object.defineProperty(window, "ym", {
+          configurable: true,
+          enumerable: ymDescriptor ? ymDescriptor.enumerable : true,
+          get: () => ymValue,
+          set: assignYm,
+        });
+        assignYm(ymValue);
+      } catch (_) { wrapYm(); }
+    } else {
+      wrapYm();
+    }
+    // The standard Metrika snippet can replace its queue function when tag.js
+    // loads, so observe the short startup window and wrap each replacement.
+    wrapYm();
+    if (typeof setInterval === "function" && typeof setTimeout === "function") {
+      const watcher = setInterval(wrapYm, 250);
+      setTimeout(() => {
+        clearInterval(watcher);
+        // Return a normal writable global after the Metrika startup period.
+        try {
+          const current = window.ym;
+          Object.defineProperty(window, "ym", {configurable: true, enumerable: true, writable: true, value: current});
+        } catch (_) {}
+      }, 30000);
+    }
     (window.__clickShotPendingGoals || []).splice(0, 100).forEach(name => window.ClickShotMetrika.goal(name));
     const pageview = () => { send().catch(() => {}); };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pageview, {once: true});

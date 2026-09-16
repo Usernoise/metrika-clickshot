@@ -10,6 +10,7 @@ header('Content-Type: text/html; charset=utf-8');
 <script>
 window.fixtureGoals = [];
 window.ym = (...args) => window.fixtureGoals.push(args);
+window.ym(12345, 'reachGoal', 'fixture_goal');
 const tag = document.createElement('script');
 if (new URLSearchParams(location.search).get('mode') === 'attribute') {
   tag.setAttribute('src', 'https://mc.yandex.ru/metrika/tag.js?id=12345');

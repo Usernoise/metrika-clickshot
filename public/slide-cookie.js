@@ -413,7 +413,14 @@
             // загрузки tag.js, поэтому ждать саму загрузку не требуется
             pendingGoals.splice(0).forEach(function (goal) {
                 try {
-                    window.ym(counterId, 'reachGoal', goal);
+                    // This target has already been sent to ClickShot by trackGoal.
+                    // Do not let the generic ym bridge create a duplicate event.
+                    window.__clickShotSuppressYandexGoalBridge = (window.__clickShotSuppressYandexGoalBridge || 0) + 1;
+                    try {
+                        window.ym(counterId, 'reachGoal', goal);
+                    } finally {
+                        window.__clickShotSuppressYandexGoalBridge--;
+                    }
                 } catch (e) {
                     // Игнорируем ошибки отправки
                 }
