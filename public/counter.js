@@ -1,75 +1,76 @@
 (() => {
   "use strict";
-
   const script = document.currentScript;
   if (!script) return;
-
-  let siteId = script.dataset.id || "";
-
   try {
     const scriptUrl = new URL(script.src, location.href);
-    siteId = siteId || scriptUrl.searchParams.get("id") || "";
-    if (!siteId) return;
-
+    const siteId = script.dataset.id || scriptUrl.searchParams.get("id") || "";
+    if (!/^[a-zA-Z0-9_-]{2,64}$/.test(siteId)) return;
     const endpoint = `${scriptUrl.origin}/api/hit.php`;
-    const configEndpoint = `${scriptUrl.origin}/api/config.php?site=${encodeURIComponent(siteId)}`;
     const bootstrap = window.__clickShotBootstrap;
-
-    const post = (payload) => {
+    let collection = bootstrap && bootstrap.site === siteId ? bootstrap.collection : null;
+    let configRequest;
+    const inFlightVisits = new Set();
+    const getCollection = () => {
+      if (collection) return Promise.resolve(collection);
+      if (!configRequest) {
+        configRequest = fetch(`${scriptUrl.origin}/api/config.php?site=${encodeURIComponent(siteId)}`,
+          {mode: "cors", credentials: "omit", cache: "no-store"})
+          .then(async response => {
+            const data = await response.json();
+            if (!response.ok || !data.collection) return null;
+            collection = data.collection;
+            return collection;
+          }).catch(() => null);
+      }
+      return configRequest;
+    };
+    const post = async payload => {
       const body = JSON.stringify(payload);
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(endpoint, new Blob([body], { type: "application/json" }));
-      } else {
-        fetch(endpoint, {method: "POST", mode: "cors", credentials: "omit", keepalive: true,
-          headers: { "Content-Type": "application/json" }, body}).catch(() => {});
-      }
-    };
-
-    window.ClickShotMetrika = window.ClickShotMetrika || {};
-    window.ClickShotMetrika.goal = (name) => {
-      if (!/^[a-z][a-z0-9_]{1,63}$/.test(String(name || ""))) return;
-      let newVisit = false;
       try {
-        const key = `clickshot-metrika:${siteId}:event:${name}`;
-        newVisit = sessionStorage.getItem(key) !== "1";
-        sessionStorage.setItem(key, "1");
-      } catch (_) { newVisit = true; }
-      post({site: siteId, event: name, newVisit});
-    };
-    (window.__clickShotPendingGoals || []).splice(0).forEach((name) => window.ClickShotMetrika.goal(name));
-
-    const send = async () => {
-      let collection = bootstrap && bootstrap.site === siteId ? bootstrap.collection : null;
-      if (!collection) {
-        try {
-          const response = await fetch(configEndpoint, {mode: "cors", credentials: "omit", cache: "no-store"});
-          const config = await response.json();
-          if (!response.ok || !config || !config.collection) return;
-          collection = config.collection;
-        } catch (_) { return; }
-      }
-
-      let newVisit = false;
-      if (collection.visits) {
-        const key = `clickshot-metrika:${siteId}:started`;
-        try {
-          newVisit = sessionStorage.getItem(key) !== "1";
-          sessionStorage.setItem(key, "1");
-        } catch (_) {
-          newVisit = true;
+        if (navigator.sendBeacon && navigator.sendBeacon(endpoint, new Blob([body], {type: "application/json"}))) {
+          return true; // Queued by the browser; not a server delivery receipt.
         }
-      }
-
-      const event = { site: siteId, newVisit };
-      if (collection.pages) event.path = location.pathname || "/";
-      if (collection.referrers) event.referrer = document.referrer || "";
-      post(event);
+      } catch (_) {}
+      try {
+        const response = await fetch(endpoint, {method: "POST", mode: "cors", credentials: "omit",
+          keepalive: true, headers: {"Content-Type": "application/json"}, body});
+        return response.ok;
+      } catch (_) { return false; }
     };
-
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", send, { once: true });
-    } else {
-      send();
-    }
+    // ClickShot aggregates, including banner goals, are independent of Yandex consent.
+    const send = async (name = "") => {
+      const settings = await getCollection();
+      if (!settings) return false;
+      const key = `clickshot-metrika:${siteId}:${name ? `event:${name}` : "started"}`;
+      let newVisit = false;
+      if (settings.visits) {
+        try { newVisit = sessionStorage.getItem(key) !== "1"; }
+        catch (_) { newVisit = true; }
+        newVisit = newVisit && !inFlightVisits.has(key);
+      }
+      if (newVisit) inFlightVisits.add(key);
+      const payload = {site: siteId, newVisit};
+      if (name) payload.event = name;
+      else if (settings.pages) payload.path = location.pathname || "/";
+      if (settings.referrers) payload.referrer = document.referrer || "";
+      const queued = await post(payload);
+      if (newVisit) {
+        if (queued) {
+          try { sessionStorage.setItem(key, "1"); } catch (_) {}
+        }
+        inFlightVisits.delete(key);
+      }
+      return queued;
+    };
+    window.ClickShotMetrika = window.ClickShotMetrika || {};
+    window.ClickShotMetrika.goal = name => {
+      if (typeof name !== "string" || !/^[a-z][a-z0-9_]{1,63}$/.test(name)) return Promise.resolve(false);
+      return send(name).catch(() => false);
+    };
+    (window.__clickShotPendingGoals || []).splice(0, 100).forEach(name => window.ClickShotMetrika.goal(name));
+    const pageview = () => { send().catch(() => {}); };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pageview, {once: true});
+    else pageview();
   } catch (_) {}
 })();

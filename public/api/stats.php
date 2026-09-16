@@ -3,6 +3,12 @@ declare(strict_types=1);
 
 require dirname(__DIR__, 2) . '/lib.php';
 require_auth();
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') respond_json(405, ['ok' => false]);
+foreach (['site', 'days', 'group', 'from', 'to', 'sources'] as $key) {
+    if (isset($_GET[$key]) && !is_string($_GET[$key])) {
+        respond_json(400, ['ok' => false, 'error' => 'Некорректный параметр: ' . $key]);
+    }
+}
 
 $siteId = clean_site_id($_GET['site'] ?? '');
 $days = max(1, min(1095, (int)($_GET['days'] ?? 30)));
@@ -41,9 +47,9 @@ if ($fromDate !== null) {
         $toDate = $tmp;
     }
     $diffDays = (int)$fromDate->diff($toDate)->format('%a');
-    if ($diffDays > 1095) {
-        $fromDate = $toDate->modify('-1095 days');
-        $diffDays = 1095;
+    if ($diffDays > 1094) {
+        $fromDate = $toDate->modify('-1094 days');
+        $diffDays = 1094;
     }
     $days = $diffDays + 1;
 } else {

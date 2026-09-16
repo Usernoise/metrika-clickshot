@@ -1,7 +1,10 @@
 storage/*.sqlite
 storage/*.sqlite-wal
 storage/*.sqlite-shm
+storage/*.migration.lock
 .DS_Store
 .vscode/
 .idea/
 graphify-out/
+.playwright-cli/
+output/playwright/

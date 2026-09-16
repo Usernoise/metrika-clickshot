@@ -8,9 +8,12 @@ $checks = [
     'php_version' => PHP_VERSION,
     'pdo_sqlite' => extension_loaded('pdo_sqlite'),
     'sqlite3' => extension_loaded('sqlite3'),
+    'mbstring' => extension_loaded('mbstring'),
+    'curl' => extension_loaded('curl'),
+    'dom' => extension_loaded('dom'),
+    'supported_php' => PHP_VERSION_ID >= 80300,
     'storage_exists' => is_dir(dirname(app_config()['db_path'])),
     'storage_writable' => is_writable(dirname(app_config()['db_path'])),
-    'db_path' => app_config()['db_path'],
 ];
 
 try {
@@ -20,5 +23,5 @@ try {
     $checks['database'] = false;
 }
 
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode($checks, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+$ok = !in_array(false, $checks, true);
+respond_json($ok ? 200 : 503, ['ok' => $ok, 'checks' => $checks]);

@@ -279,7 +279,13 @@ function applyCollectionVisibility(collection){
   document.querySelector('#visits-card').hidden = !enabled.visits;
   document.querySelector('#depth-card').hidden = !(enabled.pageviews && enabled.visits);
   document.querySelector('#metrics-cards').hidden = !(enabled.pageviews || enabled.visits);
-  document.querySelector('#chart-panel').hidden = !enabled.pageviews;
+  document.querySelector('#chart-panel').hidden = !(enabled.pageviews || enabled.visits);
+  if (!enabled[currentMetric]) currentMetric = enabled.visits ? 'visits' : 'pageviews';
+  document.querySelectorAll('.metric-tab').forEach(tab => {
+    tab.hidden = !enabled[tab.dataset.metric];
+    tab.classList.toggle('active', tab.dataset.metric === currentMetric);
+    tab.setAttribute('aria-selected', String(tab.dataset.metric === currentMetric));
+  });
   document.querySelector('#pages-panel').hidden = !enabled.pages;
   document.querySelector('#referrers-panel').hidden = !enabled.referrers;
   document.querySelector('#detail-panels').hidden = !(enabled.pages || enabled.referrers);
@@ -362,6 +368,7 @@ function initCustomDatesIfNeeded(){
 }
 
 async function loadStats(){
+  const requestId = loadStats.requestId = (loadStats.requestId || 0) + 1;
   const error = document.querySelector('#error');
   error.style.display = 'none';
   const site = document.querySelector('#site').value;
@@ -375,6 +382,10 @@ async function loadStats(){
     document.querySelector('#chart').innerHTML='';
     document.querySelector('#pages').innerHTML='';
     document.querySelector('#referrers').innerHTML='';
+    ['#events', '#browsers', '#operating-systems', '#devices'].forEach(selector => {
+      document.querySelector(selector).innerHTML = '';
+    });
+    document.querySelector('#source-filter').hidden = true;
     return;
   }
 
@@ -394,6 +405,7 @@ async function loadStats(){
     const r = await fetch(url, {cache:'no-store'});
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
+    if (requestId !== loadStats.requestId) return;
     applyCollectionVisibility(d.collection);
     syncSourceFilter(d.available_sources, !!(d.collection && d.collection.referrers));
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
@@ -434,7 +446,8 @@ async function loadStats(){
     }).join('') : '';
   } catch(e) {
     console.error('Ошибка загрузки статистики:', e);
-    error.textContent = 'Не удалось загрузить статистику';
+    if (requestId !== loadStats.requestId) return;
+    error.textContent = 'Не удалось загрузить статистику. Показанные данные могут быть устаревшими.';
     error.style.display = 'block';
   }
 }
@@ -461,7 +474,7 @@ document.querySelectorAll('.metric-tab').forEach(btn => {
   });
 });
 
-document.querySelector('#site').addEventListener('change', () => {
+function selectSite(){
   selectedSources = null;
   renderCollectionSettings();
   renderSlideCookieSettings();
@@ -470,7 +483,8 @@ document.querySelector('#site').addEventListener('change', () => {
   checkStatus.textContent = '';
   checkStatus.className = 'snippet-status';
   loadStats();
-});
+}
+document.querySelector('#site').addEventListener('change', selectSite);
 
 document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) => {
   document.querySelector('#slide-cookie-config').hidden = !e.target.checked;
@@ -507,9 +521,10 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     const d = await r.json();
     if(!r.ok || !d.ok) throw new Error(d.error || 'Не удалось сохранить Slide Cookie');
     sitesById[site].slide_cookie = d.slide_cookie;
+    if (document.querySelector('#site').value !== site) return;
     renderSlideCookieSettings(); updateSnippet();
     status.textContent = 'Сохранено. Скопируйте обновлённый код подключения.';
-  } catch(e) { status.textContent = e.message || 'Не удалось сохранить Slide Cookie'; }
+  } catch(e) { if (document.querySelector('#site').value === site) status.textContent = e.message || 'Не удалось сохранить Slide Cookie'; }
   finally { button.disabled = false; }
 });
 
@@ -535,10 +550,11 @@ document.querySelector('#save-collection').addEventListener('click', async () =>
     const d = await r.json();
     if(!r.ok || !d.ok) throw new Error(d.error || 'Не удалось сохранить настройки');
     sitesById[site].collection = d.collection;
+    if (document.querySelector('#site').value !== site) return;
     status.textContent = 'Сохранено. Новые события будут собираться по этим правилам.';
     loadStats();
   } catch(e) {
-    status.textContent = e.message || 'Не удалось сохранить настройки';
+    if (document.querySelector('#site').value === site) status.textContent = e.message || 'Не удалось сохранить настройки';
   } finally {
     button.disabled = false;
   }
@@ -617,19 +633,26 @@ document.querySelector('#check-install').addEventListener('click', async () => {
   try {
     const response = await fetch('/api/check-install.php?site=' + encodeURIComponent(siteId), {cache: 'no-store'});
     const result = await response.json();
+    if (document.querySelector('#site').value !== siteId) return;
     if (!response.ok || !result.ok) throw new Error(result.error || 'Не удалось проверить установку');
     const found = result.checks.filter(item => item.status === 'installed').map(item => item.domain);
     if (found.length) {
       status.className = 'snippet-status is-ok';
       status.textContent = 'Код найден: ' + found.join(', ');
+      if (result.checks.some(item => item.warnings && item.warnings.length)) {
+        status.className = 'snippet-status is-error';
+        status.textContent += '. Есть async/defer, статический тег Метрики или пиксель: проверьте блокировку до согласия по инструкции.';
+      }
     } else {
       const unavailable = result.checks.every(item => item.status === 'unavailable');
       status.className = 'snippet-status is-error';
-      status.textContent = unavailable ? 'Сайт недоступен для проверки' : 'Код не найден на главной странице';
+      status.textContent = unavailable ? 'Сайт недоступен для проверки' : 'Установка не подтверждена в HTML главной страницы. Динамическое подключение проверяется в браузере.';
     }
   } catch (error) {
-    status.className = 'snippet-status is-error';
-    status.textContent = error.message || 'Не удалось проверить установку';
+    if (document.querySelector('#site').value === siteId) {
+      status.className = 'snippet-status is-error';
+      status.textContent = error.message || 'Не удалось проверить установку';
+    }
   } finally {
     button.disabled = false;
   }
@@ -677,8 +700,7 @@ document.querySelector('#add-site').addEventListener('click', async (e) => {
     document.querySelector('#new-domains').value = '';
     await loadSites();
     if(res.id) document.querySelector('#site').value = res.id;
-    updateSnippet();
-    loadStats();
+    selectSite();
     closeSiteModal();
   } else {
     alert(res.error || 'Не удалось добавить сайт');

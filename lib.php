@@ -11,7 +11,9 @@ function app_config(): array
     return $config;
 }
 
-function db(): PDO
+const SCHEMA_VERSION = 1;
+
+function db(bool $forMigration = false): PDO
 {
     static $pdo;
     if ($pdo instanceof PDO) {
@@ -24,22 +26,41 @@ function db(): PDO
         throw new RuntimeException('Не удалось создать каталог базы данных');
     }
 
-    $pdo = new PDO('sqlite:' . $config['db_path'], null, null, [
+    $connection = new PDO('sqlite:' . $config['db_path'], null, null, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
-    $pdo->exec('PRAGMA journal_mode=WAL');
-    $pdo->exec('PRAGMA synchronous=NORMAL');
-    $pdo->exec('PRAGMA busy_timeout=5000');
-
-    migrate($pdo);
-
+    $connection->exec('PRAGMA busy_timeout=5000');
+    $connection->exec('PRAGMA synchronous=NORMAL');
+    if ($forMigration) {
+        // Serialize WAL conversion too: it runs outside the schema transaction.
+        $lock = fopen($config['db_path'] . '.migration.lock', 'c');
+        if ($lock === false || !flock($lock, LOCK_EX)) throw new RuntimeException('Cannot lock migration');
+        try {
+            $connection->exec('PRAGMA journal_mode=WAL');
+            migrate($connection);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    } elseif ((int)$connection->query('PRAGMA user_version')->fetchColumn() !== SCHEMA_VERSION) {
+        throw new RuntimeException('Database migration required');
+    }
+    $pdo = $connection;
     return $pdo;
 }
 
 function migrate(PDO $pdo): void
 {
+    $pdo->exec('BEGIN IMMEDIATE');
+    try {
+    $version = (int)$pdo->query('PRAGMA user_version')->fetchColumn();
+    if ($version > SCHEMA_VERSION) throw new RuntimeException('Unsupported database version');
+    if ($version === SCHEMA_VERSION) {
+        $pdo->exec('COMMIT');
+        return;
+    }
     $pdo->exec(<<<'SQL'
 CREATE TABLE IF NOT EXISTS sites (
     id TEXT PRIMARY KEY,
@@ -227,29 +248,47 @@ SQL);
         }
     }
 
-    $count = (int)$pdo->query('SELECT COUNT(*) FROM sites')->fetchColumn();
-    if ($count === 0) {
-        $stmt = $pdo->prepare(
-            'INSERT INTO sites(id, name, domains_json, created_at, is_active)
-             VALUES(:id, :name, :domains, :created_at, 1)'
-        );
-        $stmt->execute([
-            ':id' => 'neural_courses',
-            ':name' => 'Neural Courses',
-            ':domains' => json_encode(
-                ['neural-courses.ru', 'www.neural-courses.ru'],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            ),
-            ':created_at' => date(DATE_ATOM),
-        ]);
-    }
-
     $pdo->exec(
         "INSERT OR IGNORE INTO site_collection_settings(
             site_id, collect_pageviews, collect_pages, collect_referrers, collect_visits, collect_tech, updated_at
         )
         SELECT id, 1, 1, 1, 1, 0, '" . date(DATE_ATOM) . "' FROM sites"
     );
+    $pdo->exec('CREATE TABLE IF NOT EXISTS ingest_budget (site_id TEXT PRIMARY KEY, minute INTEGER NOT NULL, hits INTEGER NOT NULL)');
+    // Triggers protect both old and newly created tables without rewriting history.
+    foreach (site_data_tables() as $table) {
+        $pdo->exec("CREATE TRIGGER IF NOT EXISTS guard_{$table} BEFORE INSERT ON {$table}
+            WHEN NOT EXISTS (SELECT 1 FROM sites WHERE id=NEW.site_id)
+            BEGIN SELECT RAISE(ABORT, 'Unknown site'); END");
+        $pdo->exec("CREATE TRIGGER IF NOT EXISTS delete_{$table} AFTER DELETE ON sites
+            BEGIN DELETE FROM {$table} WHERE site_id=OLD.id; END");
+    }
+    $pdo->exec('PRAGMA user_version=' . SCHEMA_VERSION);
+    $pdo->exec('COMMIT');
+    } catch (Throwable $error) {
+        $pdo->exec('ROLLBACK');
+        throw $error;
+    }
+}
+
+function site_data_tables(): array
+{
+    return ['site_collection_settings', 'daily_stats', 'hourly_stats', 'page_daily_stats',
+        'referrer_daily_stats', 'browser_daily_stats', 'os_daily_stats', 'device_daily_stats',
+        'event_daily_stats', 'source_page_daily_stats', 'source_browser_daily_stats',
+        'source_os_daily_stats', 'source_device_daily_stats', 'source_event_daily_stats', 'ingest_budget'];
+}
+
+function api_error(Throwable $error): never
+{
+    if ($error instanceof InvalidArgumentException || $error instanceof JsonException) {
+        respond_json(400, ['ok' => false, 'error' => $error->getMessage()]);
+    }
+    if ($error instanceof OverflowException) {
+        header('Retry-After: 60');
+        respond_json(429, ['ok' => false, 'error' => 'Достигнут лимит приёма событий']);
+    }
+    respond_json(503, ['ok' => false, 'error' => 'Сервис временно недоступен']);
 }
 
 function require_auth(): void
@@ -272,12 +311,15 @@ function require_auth(): void
 
 function json_input(): array
 {
-    $raw = file_get_contents('php://input');
+    if (strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0])) !== 'application/json') {
+        respond_json(415, ['ok' => false, 'error' => 'Ожидался application/json']);
+    }
+    $raw = file_get_contents('php://input', false, null, 0, 8193);
     if ($raw === false || strlen($raw) > 8192) {
         throw new InvalidArgumentException('Некорректное тело запроса');
     }
     $data = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
-    if (!is_array($data)) {
+    if (!is_array($data) || !str_starts_with(ltrim($raw), '{')) {
         throw new InvalidArgumentException('Ожидался JSON');
     }
     return $data;
@@ -316,16 +358,31 @@ function clean_path(mixed $value): string
         if ($segment === '') {
             continue;
         }
-        $isEmail = filter_var(rawurldecode($segment), FILTER_VALIDATE_EMAIL) !== false;
+        for ($i = 0; $i < 3; $i++) {
+            $decoded = rawurldecode($segment);
+            if ($decoded === $segment) break;
+            $segment = $decoded;
+        }
+        // Residual encoding and encoded separators cannot be classified safely.
+        if (!mb_check_encoding($segment, 'UTF-8') || preg_match('~[%/\\\\\x00-\x1f]~', $segment)) {
+            $segments[$index] = ':id';
+            continue;
+        }
+        $isEmail = filter_var($segment, FILTER_VALIDATE_EMAIL) !== false;
         $isUuid = preg_match('/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i', $segment);
         $isLongNumber = preg_match('/^\d{5,}$/', $segment);
+        $isPhone = preg_match('/^\+?[\d ().-]{10,}$/', $segment)
+            && strlen(preg_replace('/\D/', '', $segment)) >= 10;
         // Длинные SEO-slug'и (например, nazvanie-kursa-s-podrobnym-opisaniem)
         // не являются идентификаторами и должны оставаться читаемыми в отчёте.
         // Маскируем только непрозрачные смешанные токены с цифрами или подчёркиваниями.
         $isOpaqueToken = preg_match('/^[A-Za-z0-9_-]{24,}$/', $segment)
-            && (preg_match('/\d/', $segment) || str_contains($segment, '_'));
-        if ($isEmail || $isUuid || $isLongNumber || $isOpaqueToken) {
+            && (preg_match('/\d/', $segment) || str_contains($segment, '_') || !str_contains($segment, '-'));
+        $sensitiveRoute = $index > 0 && preg_match('/^(?:token|reset-password|access-token|email|phone)$/i', $segments[$index - 1]);
+        if ($isEmail || $isUuid || $isLongNumber || $isOpaqueToken || $isPhone || $sensitiveRoute) {
             $segments[$index] = ':id';
+        } else {
+            $segments[$index] = $segment;
         }
     }
     $path = implode('/', $segments);
@@ -383,15 +440,20 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
         'block_metrika' => true, 'ym_counter' => '', 'accent_color' => '#C5FF1A',
         'dark_color' => '#0A0A0A', 'accent_text_color' => '#C5FF1A', 'version' => 1,
     ];
-    if (!is_array($value)) return $settings;
+    if ($value === null) return $settings;
+    if (!is_array($value)) throw new InvalidArgumentException('Некорректные настройки Slide Cookie');
     foreach (['enabled', 'block_metrika'] as $key) {
-        if (array_key_exists($key, $value)) $settings[$key] = $value[$key] === true || $value[$key] === 1 || $value[$key] === '1';
+        if (array_key_exists($key, $value)) $settings[$key] = input_bool($value[$key]);
     }
     foreach (['policy_url', 'param', 'key', 'ym_counter'] as $key) {
-        if (array_key_exists($key, $value)) $settings[$key] = trim((string)$value[$key]);
+        if (array_key_exists($key, $value)) $settings[$key] = input_string($value[$key], $key, $key === 'policy_url' ? 2048 : 128);
     }
     foreach (['accent_color', 'dark_color', 'accent_text_color'] as $key) {
-        if (array_key_exists($key, $value) && preg_match('/^#[0-9a-f]{6}$/i', (string)$value[$key])) $settings[$key] = strtoupper((string)$value[$key]);
+        if (array_key_exists($key, $value)) {
+            $color = input_string($value[$key], $key, 7);
+            if (!preg_match('/^#[0-9a-f]{6}$/i', $color)) throw new InvalidArgumentException('Некорректный цвет');
+            $settings[$key] = strtoupper($color);
+        }
     }
     if ($settings['policy_url'] !== '' && !preg_match('~^(?:https?://|/|\./|\.\./|\?|#)~i', $settings['policy_url'])) throw new InvalidArgumentException('Некорректная ссылка на политику');
     if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $settings['param'])) throw new InvalidArgumentException('Некорректный параметр показа');
@@ -422,12 +484,11 @@ function clean_collection_settings(mixed $value, ?array $fallback = null): array
         'visits' => true,
         'tech' => false,
     ];
-    if (!is_array($value)) {
-        return $settings;
-    }
+    if ($value === null) return $settings;
+    if (!is_array($value)) throw new InvalidArgumentException('Некорректные настройки сбора');
     foreach (array_keys($settings) as $key) {
         if (array_key_exists($key, $value)) {
-            $settings[$key] = $value[$key] === true || $value[$key] === 1 || $value[$key] === '1';
+            $settings[$key] = input_bool($value[$key]);
         }
     }
     return $settings;
@@ -479,14 +540,77 @@ function classify_user_agent(): array
 
 function request_origin_host(): string
 {
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-    return strtolower((string)parse_url($origin, PHP_URL_HOST));
+    return http_url_host($_SERVER['HTTP_ORIGIN'] ?? '');
 }
 
 function request_referer_host(): string
 {
-    $referer = $_SERVER['HTTP_REFERER'] ?? '';
-    return strtolower((string)parse_url($referer, PHP_URL_HOST));
+    return http_url_host($_SERVER['HTTP_REFERER'] ?? '');
+}
+
+function http_url_host(string $url): string
+{
+    $parts = parse_url($url);
+    if (!$parts || !in_array(strtolower($parts['scheme'] ?? ''), ['http', 'https'], true)
+        || isset($parts['user']) || isset($parts['pass'])) return '';
+    return strtolower(rtrim($parts['host'] ?? '', '.'));
+}
+
+function require_site_origin(array $domains): void
+{
+    if (isset($_SERVER['HTTP_ORIGIN']) && !preg_match('~^https?://[^/?#]+$~i', $_SERVER['HTTP_ORIGIN'])) {
+        respond_json(403, ['ok' => false, 'error' => 'Некорректный Origin']);
+    }
+    $host = isset($_SERVER['HTTP_ORIGIN']) ? request_origin_host() : request_referer_host();
+    $domains = array_map(static fn(string $d): string => strtolower(rtrim($d, '.')), $domains);
+    if ($host === '' || !in_array($host, $domains, true)) {
+        respond_json(403, ['ok' => false, 'error' => 'Домен не разрешён']);
+    }
+}
+
+function require_admin_origin(): void
+{
+    if (($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '') === 'cross-site') {
+        respond_json(403, ['ok' => false]);
+    }
+    if (isset($_SERVER['HTTP_ORIGIN'])) {
+        $scheme = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $expected = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+        if (strtolower($_SERVER['HTTP_ORIGIN']) !== strtolower($expected)) respond_json(403, ['ok' => false]);
+    }
+}
+
+function input_string(mixed $value, string $field, int $max = 500): string
+{
+    if (!is_string($value) || !mb_check_encoding($value, 'UTF-8') || mb_strlen($value) > $max) {
+        throw new InvalidArgumentException('Некорректное поле: ' . $field);
+    }
+    return trim($value);
+}
+
+function clean_domains(mixed $domains): array
+{
+    if (!is_array($domains) || count($domains) > 10) throw new InvalidArgumentException('Укажите от 1 до 10 доменов');
+    $result = [];
+    foreach ($domains as $domain) {
+        $domain = strtolower(rtrim(input_string($domain, 'domains', 253), '.'));
+        if ($domain === '') continue;
+        if (!str_contains($domain, '.') || !filter_var($domain, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME)
+            || filter_var($domain, FILTER_VALIDATE_IP) || !preg_match('/[a-z]$/', $domain)) {
+            throw new InvalidArgumentException('Некорректный домен; для IDN используйте punycode');
+        }
+        $result[] = $domain;
+    }
+    if (!$result) throw new InvalidArgumentException('Укажите хотя бы один домен');
+    return array_values(array_unique($result));
+}
+
+function input_bool(mixed $value): bool
+{
+    if (!in_array($value, [true, false, 0, 1, '0', '1'], true)) {
+        throw new InvalidArgumentException('Некорректное логическое значение');
+    }
+    return $value === true || $value === 1 || $value === '1';
 }
 
 function clean_referrer(mixed $value, array $siteDomains): string
@@ -523,3 +647,15 @@ function e(string $value): string
 {
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+function check_dimension_budget(PDO $pdo, string $table, string $column, string $value, string $site, string $day, int $limit): void
+{
+    $stmt = $pdo->prepare("SELECT 1 FROM {$table} WHERE site_id=? AND stat_date=? AND {$column}=? LIMIT 1");
+    $stmt->execute([$site, $day, $value]);
+    if ($stmt->fetchColumn()) return;
+    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT {$column}) FROM {$table} WHERE site_id=? AND stat_date=?");
+    $stmt->execute([$site, $day]);
+    if ((int)$stmt->fetchColumn() >= $limit) throw new OverflowException();
+}
+
+if (PHP_SAPI !== 'cli') set_exception_handler('api_error');

@@ -5,6 +5,7 @@ require dirname(__DIR__, 2) . '/lib.php';
 require_auth();
 
 $method = $_SERVER['REQUEST_METHOD'];
+if (in_array($method, ['POST', 'PUT', 'DELETE'], true)) require_admin_origin();
 
 if ($method === 'GET') {
     $sites = array_map(static function(array $site): array {
@@ -32,29 +33,22 @@ if ($method === 'POST') {
     try {
         $input = json_input();
         $id = clean_site_id($input['id'] ?? '');
-        $name = trim((string)($input['name'] ?? ''));
-        $domains = $input['domains'] ?? [];
-
-        if (!is_array($domains) || !$domains || $name === '') {
+        if (array_key_exists('id', $input) && $id === '') throw new InvalidArgumentException('Некорректный ID сайта');
+        $name = input_string($input['name'] ?? '', 'name', 200);
+        $domains = clean_domains($input['domains'] ?? []);
+        if ($name === '') {
             throw new InvalidArgumentException('Некорректные данные');
-        }
-
-        $domains = array_values(array_unique(array_filter(array_map(
-            static fn($d) => strtolower(trim((string)$d)),
-            $domains
-        ))));
-
-        foreach ($domains as $domain) {
-            if (!preg_match('/^[a-z0-9.-]+\.[a-z]{2,}$/i', $domain)) {
-                throw new InvalidArgumentException('Некорректный домен');
-            }
         }
 
         if ($id === '') {
             $baseDomain = $domains[0] ?? 'site';
             $slug = strtolower((string)preg_replace('/[^a-z0-9]/i', '_', $baseDomain));
             $slug = trim($slug, '_');
-            $id = $slug . '_' . substr(bin2hex(random_bytes(4)), 0, 6);
+            do {
+                $id = substr($slug, 0, 47) . '_' . bin2hex(random_bytes(8));
+                $exists = db()->prepare('SELECT 1 FROM sites WHERE id=?');
+                $exists->execute([$id]);
+            } while ($exists->fetchColumn());
         }
 
         // Validate everything before changing the database. In particular,
@@ -63,6 +57,9 @@ if ($method === 'POST') {
         $slideCookie = clean_slide_cookie_settings($input['slide_cookie'] ?? null);
         $pdo = db();
         $pdo->beginTransaction();
+        $exists = $pdo->prepare('SELECT 1 FROM sites WHERE id=?');
+        $exists->execute([$id]);
+        if ($exists->fetchColumn()) throw new InvalidArgumentException('ID сайта уже существует');
 
         $stmt = $pdo->prepare(
             'INSERT INTO sites(id,name,domains_json,created_at,is_active)
@@ -106,7 +103,7 @@ if ($method === 'POST') {
         if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        respond_json(400, ['ok' => false, 'error' => $e->getMessage() ?: 'Не удалось создать сайт']);
+        api_error($e);
     }
 }
 
@@ -114,6 +111,11 @@ if ($method === 'PUT') {
     try {
         $input = json_input();
         $id = clean_site_id($input['id'] ?? '');
+        $pdo = db();
+        $pdo->beginTransaction();
+        // Serialize concurrent partial settings updates before reading fallbacks.
+        $lock = $pdo->prepare('UPDATE sites SET is_active=is_active WHERE id=?');
+        $lock->execute([$id]);
         $site = site_by_id($id);
         if (!$site) {
             throw new InvalidArgumentException('Сайт не найден');
@@ -162,9 +164,11 @@ if ($method === 'PUT') {
             ':accent_text_color' => $slideCookie['accent_text_color'], ':cookie_version' => $slideCookie['version'],
             ':updated_at' => date(DATE_ATOM),
         ]);
+        $pdo->commit();
         respond_json(200, ['ok' => true, 'collection' => $settings, 'slide_cookie' => $slideCookie]);
     } catch (Throwable $e) {
-        respond_json(400, ['ok' => false, 'error' => $e->getMessage() ?: 'Не удалось сохранить настройки']);
+        if (isset($pdo) && $pdo->inTransaction()) $pdo->rollBack();
+        api_error($e);
     }
 }
 
@@ -180,18 +184,7 @@ if ($method === 'DELETE') {
         $pdo = db();
         $pdo->beginTransaction();
         
-        foreach ([
-            'site_collection_settings',
-            'daily_stats',
-            'hourly_stats',
-            'page_daily_stats',
-            'referrer_daily_stats',
-            'browser_daily_stats',
-            'os_daily_stats',
-            'device_daily_stats',
-            'event_daily_stats',
-            'sites',
-        ] as $table) {
+        foreach (array_merge(site_data_tables(), ['sites']) as $table) {
             $stmt = $pdo->prepare("DELETE FROM {$table} WHERE " . ($table === 'sites' ? 'id' : 'site_id') . ' = :id');
             $stmt->execute([':id' => $id]);
         }
@@ -203,7 +196,7 @@ if ($method === 'DELETE') {
         if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        respond_json(400, ['ok' => false, 'error' => $e->getMessage() ?: 'Не удалось удалить сайт']);
+        api_error($e);
     }
 }
 

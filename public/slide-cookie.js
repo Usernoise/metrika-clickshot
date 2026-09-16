@@ -182,7 +182,10 @@
 
     function isMetrikaSrc(value) {
         if (!value) return false;
-        return /mc\.yandex\.(ru|com)|metrika\/(tag|watch)\.js|mc\.webvisor\.(org|com)/i.test(String(value));
+        try {
+            const url = new URL(String(value), location.href);
+            return /^(?:mc\.yandex\.(?:ru|com)|mc\.webvisor\.(?:org|com))$/i.test(url.hostname);
+        } catch (_) { return false; }
     }
 
     function getScriptSrcDescriptor() {
@@ -215,6 +218,11 @@
             const element = originalCreateElement.call(this, tagName, options);
             try {
                 if (typeof tagName === 'string' && tagName.toLowerCase() === 'script') {
+                    const originalSetAttribute = element.setAttribute;
+                    element.setAttribute = function (name, value) {
+                        if (String(name).toLowerCase() === 'src') this.src = value;
+                        else originalSetAttribute.call(this, name, value);
+                    };
                     // Подменяем свойство src у создаваемого скрипта
                     Object.defineProperty(element, 'src', {
                         configurable: true,
@@ -223,11 +231,15 @@
                             return srcDescriptor.get.call(this);
                         },
                         set(value) {
-                            if (isMetrikaSrc(value)) {
+                            if (!metrikaAllowed && isMetrikaSrc(value)) {
                                 // Запоминаем намерение загрузить счётчик, но не загружаем
-                                blockedMetrikaScripts.push({ element: this, src: String(value) });
+                                const previous = blockedMetrikaScripts.find(item => item.element === this);
+                                if (previous) previous.src = String(value);
+                                else blockedMetrikaScripts.push({ element: this, src: String(value) });
                                 return;
                             }
+                            const previous = blockedMetrikaScripts.findIndex(item => item.element === this);
+                            if (previous !== -1) blockedMetrikaScripts.splice(previous, 1);
                             srcDescriptor.set.call(this, value);
                         }
                     });
@@ -260,6 +272,7 @@
     }
 
     function unblockMetrika() {
+        metrikaAllowed = true;
         restoreCreateElement();
 
         const srcDescriptor = getScriptSrcDescriptor();
@@ -287,14 +300,13 @@
     // (но уже после объявлений выше, чтобы не словить temporal dead zone).
     // Вся IIFE отрабатывает синхронно до сниппета Метрики, поэтому «ранность»
     // не теряется от переноса вызова сюда.
-    if (CONFIG.BLOCK_METRIKA && checkActivation() && !isConsentGiven()) {
+    if (CONFIG.BLOCK_METRIKA && !isConsentGiven()) {
         installMetrikaBlock();
     }
 
-    // Можно ли вообще обращаться к счётчику. Если блокировка не встала
-    // (выключена, согласие уже есть или окружение без нужного дескриптора) —
-    // Метрика работает штатно и цели можно слать сразу.
-    let metrikaAllowed = !metrikaBlockInstalled;
+    // Разрешение зависит от согласия, а не от успешности установки перехватчика.
+    // UTM определяет показ окна, но не даёт разрешение на стороннюю аналитику.
+    let metrikaAllowed = !CONFIG.BLOCK_METRIKA || isConsentGiven();
 
     // ========== ЯНДЕКС МЕТРИКА: ЦЕЛИ ==========
 

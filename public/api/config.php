@@ -16,11 +16,7 @@ $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $originHost = request_origin_host();
 $refererHost = request_referer_host();
 
-if ($originHost && !in_array($originHost, $domains, true)) {
-    if (!$refererHost || !in_array($refererHost, $domains, true)) {
-        respond_json(403, ['ok' => false]);
-    }
-}
+require_site_origin($domains);
 
 if ($origin !== '') {
     header('Access-Control-Allow-Origin: ' . $origin);
