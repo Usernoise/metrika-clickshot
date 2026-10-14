@@ -70,7 +70,7 @@ $sourceFilter = array_slice($sourceFilter, 0, 50);
 $pdo = db();
 
 $stmt = $pdo->prepare(
-    'SELECT stat_date, pageviews, visits
+    'SELECT stat_date, pageviews, visits, bounces
      FROM daily_stats
      WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
      ORDER BY stat_date'
@@ -82,7 +82,8 @@ $map = [];
 foreach ($rows as $row) {
     $map[$row['stat_date']] = [
         'pageviews' => (int)$row['pageviews'],
-        'visits' => (int)$row['visits']
+        'visits' => (int)$row['visits'],
+        'bounces' => (int)($row['bounces'] ?? 0),
     ];
 }
 
@@ -94,6 +95,7 @@ while ($date <= $toDate) {
     $dailyMap[$key] = [
         'pageviews' => $map[$key]['pageviews'] ?? 0,
         'visits' => $map[$key]['visits'] ?? 0,
+        'bounces' => $map[$key]['bounces'] ?? 0,
     ];
     $date = $date->modify('+1 day');
 }
@@ -265,12 +267,38 @@ if ($sourceFilter) {
     );
     $stmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
 }
-$events = array_map(static fn(array $row): array => [
-    'name' => $row['event_name'], 'events' => (int)$row['events'], 'visits' => (int)$row['visits'],
-], $stmt->fetchAll());
-
 $pageviews = array_sum(array_column($dailyMap, 'pageviews'));
 $visits = array_sum(array_column($dailyMap, 'visits'));
+// Bounces and UTM campaigns are not stored per source, so a source-filtered
+// report has no value for them rather than a misleading 0.
+$bounces = $sourceFilter ? null : array_sum(array_column($dailyMap, 'bounces'));
+$bounceRate = $bounces === null ? null : ($visits > 0 ? round($bounces / $visits * 100, 1) : 0);
+
+$events = array_map(static fn(array $row): array => [
+    'name' => $row['event_name'],
+    'events' => (int)$row['events'],
+    'visits' => (int)$row['visits'],
+    'cr' => $visits > 0 ? round((int)$row['visits'] / $visits * 100, 1) : 0,
+], $stmt->fetchAll());
+
+$campaigns = [];
+if ($site['collection']['referrers'] && !$sourceFilter) {
+    $cStmt = $pdo->prepare(
+        'SELECT utm_source, utm_medium, utm_campaign, SUM(pageviews) AS pageviews, SUM(visits) AS visits
+         FROM campaign_daily_stats
+         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end
+         GROUP BY utm_source, utm_medium, utm_campaign
+         ORDER BY visits DESC, pageviews DESC LIMIT 50'
+    );
+    $cStmt->execute([':site' => $siteId, ':start' => $start, ':end' => $end]);
+    $campaigns = array_map(static fn(array $row): array => [
+        'source' => $row['utm_source'],
+        'medium' => $row['utm_medium'],
+        'campaign' => $row['utm_campaign'],
+        'pageviews' => (int)$row['pageviews'],
+        'visits' => (int)$row['visits'],
+    ], $cStmt->fetchAll());
+}
 
 respond_json(200, [
     'ok' => true,
@@ -284,6 +312,8 @@ respond_json(200, [
         'pageviews' => $pageviews,
         'visits' => $visits,
         'depth' => $visits > 0 ? round($pageviews / $visits, 2) : 0,
+        'bounces' => $bounces,
+        'bounce_rate' => $bounceRate,
     ],
     'daily' => $chartData,
     'pages' => array_map(fn($r) => [
@@ -296,6 +326,7 @@ respond_json(200, [
         'pageviews' => (int)$r['pageviews'],
         'visits' => (int)$r['visits']
     ], $referrers),
+    'campaigns' => $campaigns,
     'available_sources' => $availableSources ?? [],
     'tech' => $tech,
     'events' => $events,

@@ -67,6 +67,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
     </div>
     <button id="add-site-open" class="fc-btn fc-btn-primary">+ Добавить сайт</button>
     <button id="reload" class="fc-btn fc-btn-outline">Обновить</button>
+    <button id="export-csv" class="fc-btn fc-btn-outline" title="Скачать отчёт в формате CSV">Экспорт CSV</button>
   </div>
 </header>
 
@@ -78,6 +79,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 <section class="cards" id="metrics-cards" aria-label="Ключевые метрики">
   <div class="card" id="pageviews-card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
   <div class="card" id="visits-card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
+  <div class="card" id="bounce-card"><div class="label">Отказы</div><div class="value" id="bounce-rate">0%</div></div>
   <div class="card" id="depth-card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div></div>
 </section>
 
@@ -86,9 +88,10 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 </section>
 
 <div class="grid" id="detail-panels">
-<section class="panel table-panel" id="pages-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Путь / шаблон</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="pages"></tbody></table></section>
+<section class="panel table-panel" id="pages-panel"><h2>Популярные страницы</h2><table><thead><tr><th>Путь / шаблон</th><th class="num">Просмотры</th><th class="num" title="Визиты, начавшиеся с этой страницы">Входы</th></tr></thead><tbody id="pages"></tbody></table></section>
 <section class="panel table-panel" id="referrers-panel"><h2>Источники</h2><table><thead><tr><th>Источник</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="referrers"></tbody></table></section>
 </div>
+<section class="panel table-panel" id="campaigns-panel" style="margin-top:16px" hidden><h2>Рекламные кампании (UTM)</h2><table><thead><tr><th>Источник (utm_source)</th><th>Канал (utm_medium)</th><th>Кампания (utm_campaign)</th><th class="num">Просмотры</th><th class="num">Визиты</th></tr></thead><tbody id="campaigns"></tbody></table></section>
 <div class="tech-grid" id="tech-panels" hidden>
 <section class="panel table-panel"><h2>Браузеры</h2><table><thead><tr><th>Браузер</th><th class="num">Просмотры</th></tr></thead><tbody id="browsers"></tbody></table></section>
 <section class="panel table-panel"><h2>Операционные системы</h2><table><thead><tr><th>ОС</th><th class="num">Просмотры</th></tr></thead><tbody id="operating-systems"></tbody></table></section>
@@ -167,9 +170,15 @@ let currentMetric = 'visits';
 let selectedSources = null;
 let pendingSources = null;
 let sitesById = {};
+let latestStatsData = null;
 
 function fmt(v){
   return new Intl.NumberFormat("ru-RU").format(Number(v||0));
+}
+
+// null means the value is unknown for the current report (e.g. under a source filter).
+function fmtPercent(v){
+  return v === null || v === undefined ? '—' : String(v).replace('.', ',') + '%';
 }
 
 function esc(v){
@@ -277,6 +286,7 @@ function applyCollectionVisibility(collection){
   const enabled = collection || {pageviews:true, pages:true, referrers:true, visits:true, tech:false};
   document.querySelector('#pageviews-card').hidden = !enabled.pageviews;
   document.querySelector('#visits-card').hidden = !enabled.visits;
+  document.querySelector('#bounce-card').hidden = !enabled.visits;
   document.querySelector('#depth-card').hidden = !(enabled.pageviews && enabled.visits);
   document.querySelector('#metrics-cards').hidden = !(enabled.pageviews || enabled.visits);
   document.querySelector('#chart-panel').hidden = !(enabled.pageviews || enabled.visits);
@@ -379,13 +389,17 @@ async function loadStats(){
     document.querySelector('#pageviews').textContent='0';
     document.querySelector('#visits').textContent='0';
     document.querySelector('#depth').textContent='0';
+    document.querySelector('#bounce-rate').textContent='0%';
     document.querySelector('#chart').innerHTML='';
     document.querySelector('#pages').innerHTML='';
     document.querySelector('#referrers').innerHTML='';
+    document.querySelector('#campaigns').innerHTML='';
+    document.querySelector('#campaigns-panel').hidden=true;
     ['#events', '#browsers', '#operating-systems', '#devices'].forEach(selector => {
       document.querySelector(selector).innerHTML = '';
     });
     document.querySelector('#source-filter').hidden = true;
+    latestStatsData = null;
     return;
   }
 
@@ -406,11 +420,13 @@ async function loadStats(){
     if(!r.ok) throw new Error('HTTP ' + r.status);
     const d = await r.json();
     if (requestId !== loadStats.requestId) return;
+    latestStatsData = d;
     applyCollectionVisibility(d.collection);
     syncSourceFilter(d.available_sources, !!(d.collection && d.collection.referrers));
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
     document.querySelector('#depth').textContent = String(d.totals.depth).replace('.',',');
+    document.querySelector('#bounce-rate').textContent = fmtPercent(d.totals.bounce_rate);
     
     const max = Math.max(1, ...(d.daily || []).map(x => Number(x[currentMetric] || 0)));
     
@@ -426,6 +442,12 @@ async function loadStats(){
       '<tr><td>' + esc(x.referrer) + '</td><td class="num">' + fmt(x.pageviews) + '</td><td class="num">' + fmt(x.visits) + '</td></tr>'
     ).join('');
 
+    const campaigns = d.campaigns || [];
+    document.querySelector('#campaigns-panel').hidden = campaigns.length === 0;
+    document.querySelector('#campaigns').innerHTML = campaigns.map(x =>
+      '<tr><td>' + esc(x.source) + '</td><td>' + esc(x.medium) + '</td><td>' + esc(x.campaign) + '</td><td class="num">' + fmt(x.pageviews) + '</td><td class="num">' + fmt(x.visits) + '</td></tr>'
+    ).join('');
+
     const techRows = (rows) => (rows || []).map(x =>
       '<tr><td>' + esc(x.label) + '</td><td class="num">' + fmt(x.pageviews) + '</td></tr>'
     ).join('');
@@ -436,13 +458,11 @@ async function loadStats(){
     const eventsPanel = document.querySelector('#events-panel');
     const eventsBody = document.querySelector('#events');
     const showEvents = true;
-    const totalVisits = Number(d.totals && d.totals.visits || 0);
     eventsPanel.hidden = !showEvents;
     eventsBody.innerHTML = showEvents ? (d.events || []).map(x => {
       const events = Number(x.events || 0);
       const visits = Number(x.visits || 0);
-      const conversion = totalVisits > 0 ? (visits / totalVisits * 100).toFixed(1).replace('.', ',') + '%' : '0%';
-      return '<tr><td>' + esc(x.name) + '</td><td class="num">' + fmt(events) + '</td><td class="num">' + fmt(visits) + '</td><td class="num">' + conversion + '</td></tr>';
+      return '<tr><td>' + esc(x.name) + '</td><td class="num">' + fmt(events) + '</td><td class="num">' + fmt(visits) + '</td><td class="num">' + fmtPercent(x.cr) + '</td></tr>';
     }).join('') : '';
   } catch(e) {
     console.error('Ошибка загрузки статистики:', e);
@@ -705,6 +725,78 @@ document.querySelector('#add-site').addEventListener('click', async (e) => {
   } else {
     alert(res.error || 'Не удалось добавить сайт');
   }
+});
+
+document.querySelector('#export-csv').addEventListener('click', () => {
+  if (!latestStatsData) {
+    alert('Сначала выберите сайт и дождитесь загрузки статистики');
+    return;
+  }
+  const d = latestStatsData;
+  const select = document.querySelector('#site');
+  const siteName = select && select.options[select.selectedIndex] ? select.options[select.selectedIndex].text : (d.site ? d.site.name : 'site');
+  const lines = [];
+  lines.push(['Отчёт ClickShot Metrika: ' + siteName]);
+  lines.push(['Период', d.from + ' — ' + d.to]);
+  lines.push([]);
+  lines.push(['СВОДКА']);
+  lines.push(['Просмотры', d.totals.pageviews]);
+  lines.push(['Визиты', d.totals.visits]);
+  lines.push(['Отказы', fmtPercent(d.totals.bounce_rate)]);
+  lines.push(['Глубина', d.totals.depth]);
+  lines.push([]);
+
+  lines.push(['ДИНАМИКА ПО ДНЯМ']);
+  lines.push(['Дата', 'Просмотры', 'Визиты']);
+  (d.daily || []).forEach(x => {
+    lines.push([x.label, x.pageviews, x.visits]);
+  });
+  lines.push([]);
+
+  if (d.pages && d.pages.length) {
+    lines.push(['ПОПУЛЯРНЫЕ СТРАНИЦЫ']);
+    lines.push(['Путь / шаблон', 'Просмотры', 'Входы']);
+    d.pages.forEach(x => lines.push([x.path, x.pageviews, x.visits]));
+    lines.push([]);
+  }
+
+  if (d.referrers && d.referrers.length) {
+    lines.push(['ИСТОЧНИКИ']);
+    lines.push(['Источник', 'Просмотры', 'Визиты']);
+    d.referrers.forEach(x => lines.push([x.referrer, x.pageviews, x.visits]));
+    lines.push([]);
+  }
+
+  if (d.campaigns && d.campaigns.length) {
+    lines.push(['РЕКЛАМНЫЕ КАМПАНИИ (UTM)']);
+    lines.push(['Источник (utm_source)', 'Канал (utm_medium)', 'Кампания (utm_campaign)', 'Просмотры', 'Визиты']);
+    d.campaigns.forEach(x => lines.push([x.source, x.medium, x.campaign, x.pageviews, x.visits]));
+    lines.push([]);
+  }
+
+  if (d.events && d.events.length) {
+    lines.push(['ЦЕЛИ И СОБЫТИЯ']);
+    lines.push(['Событие', 'Срабатывания', 'Визиты', 'Конверсия (%)']);
+    d.events.forEach(x => lines.push([x.name, x.events, x.visits, fmtPercent(x.cr)]));
+    lines.push([]);
+  }
+
+  const csvCell = cell => {
+    let str = String(cell === null || cell === undefined ? '' : cell);
+    // Paths, sources and UTM values come from visitors: keep Excel from running them as formulas.
+    if (typeof cell === 'string' && /^[=+\-@\t\r]/.test(str)) str = "'" + str;
+    return /[",;\n\r]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+  };
+  const csvContent = '\uFEFF' + lines.map(row => row.map(csvCell).join(';')).join('\r\n');
+
+  const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'clickshot-report-' + (d.site ? d.site.id : 'export') + '-' + d.from + '-' + d.to + '.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 0);
 });
 
 (async () => {

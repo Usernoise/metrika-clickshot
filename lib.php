@@ -11,7 +11,7 @@ function app_config(): array
     return $config;
 }
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 function db(bool $forMigration = false): PDO
 {
@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     stat_date TEXT NOT NULL,
     pageviews INTEGER NOT NULL DEFAULT 0,
     visits INTEGER NOT NULL DEFAULT 0,
+    bounces INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (site_id, stat_date)
 );
 
@@ -223,7 +224,24 @@ CREATE INDEX IF NOT EXISTS idx_source_browser_daily_site_date ON source_browser_
 CREATE INDEX IF NOT EXISTS idx_source_os_daily_site_date ON source_os_daily_stats(site_id, stat_date, referrer);
 CREATE INDEX IF NOT EXISTS idx_source_device_daily_site_date ON source_device_daily_stats(site_id, stat_date, referrer);
 CREATE INDEX IF NOT EXISTS idx_source_event_daily_site_date ON source_event_daily_stats(site_id, stat_date, referrer);
+
+CREATE TABLE IF NOT EXISTS campaign_daily_stats (
+    site_id TEXT NOT NULL,
+    stat_date TEXT NOT NULL,
+    utm_source TEXT NOT NULL,
+    utm_medium TEXT NOT NULL,
+    utm_campaign TEXT NOT NULL,
+    pageviews INTEGER NOT NULL DEFAULT 0,
+    visits INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (site_id, stat_date, utm_source, utm_medium, utm_campaign)
+);
+CREATE INDEX IF NOT EXISTS idx_campaign_daily_site_date ON campaign_daily_stats(site_id, stat_date);
 SQL);
+
+    $dailyColumnNames = array_column($pdo->query('PRAGMA table_info(daily_stats)')->fetchAll(), 'name');
+    if (!in_array('bounces', $dailyColumnNames, true)) {
+        $pdo->exec('ALTER TABLE daily_stats ADD COLUMN bounces INTEGER NOT NULL DEFAULT 0');
+    }
 
     $settingColumnNames = array_column(
         $pdo->query('PRAGMA table_info(site_collection_settings)')->fetchAll(),
@@ -276,7 +294,8 @@ function site_data_tables(): array
     return ['site_collection_settings', 'daily_stats', 'hourly_stats', 'page_daily_stats',
         'referrer_daily_stats', 'browser_daily_stats', 'os_daily_stats', 'device_daily_stats',
         'event_daily_stats', 'source_page_daily_stats', 'source_browser_daily_stats',
-        'source_os_daily_stats', 'source_device_daily_stats', 'source_event_daily_stats', 'ingest_budget'];
+        'source_os_daily_stats', 'source_device_daily_stats', 'source_event_daily_stats',
+        'campaign_daily_stats', 'ingest_budget'];
 }
 
 function api_error(Throwable $error): never
@@ -648,6 +667,15 @@ function e(string $value): string
     return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/** Allowlisted UTM value; anything else (spaces, IDs with symbols, long tokens) is dropped. */
+function clean_utm(mixed $value): string
+{
+    if (!is_string($value)) return '';
+    $value = trim($value);
+    return preg_match('/^[a-zA-Z0-9_.-]{1,64}$/', $value) ? $value : '';
+}
+
+/** $column may be an SQL expression over the table's columns, e.g. a composite key. */
 function check_dimension_budget(PDO $pdo, string $table, string $column, string $value, string $site, string $day, int $limit): void
 {
     $stmt = $pdo->prepare("SELECT 1 FROM {$table} WHERE site_id=? AND stat_date=? AND {$column}=? LIMIT 1");

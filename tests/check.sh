@@ -12,3 +12,4 @@ php tests/source_filter_contract_test.php
 php tests/installation_test.php
 node tests/migration_test.mjs
 node tests/audit_repro.mjs
+node tests/new_features_test.mjs

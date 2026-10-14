@@ -65,6 +65,23 @@ try {
     $site = site_by_id($siteId);
     if (!$site) throw new InvalidArgumentException('Неизвестный сайт');
     $collection = $site['collection'];
+
+    // Bounces live only in daily_stats: a visit is counted as a bounce when it
+    // starts and un-counted once, when the client reports engagement (second
+    // pageview, goal or 15 seconds on page). The counter always sends newVisit
+    // with pageviews and goals, so only {site, engaged} is a standalone ping;
+    // a pageview without a path (page paths disabled) is still a pageview.
+    $engaged = $collection['visits'] && ($input['engaged'] ?? false) === true;
+    $unbounceSql = 'UPDATE daily_stats SET bounces = MAX(bounces - 1, 0) WHERE site_id = :site AND stat_date = :date';
+    $isEngagementPing = ($input['engaged'] ?? false) === true && $event === ''
+        && !array_key_exists('newVisit', $input) && !array_key_exists('path', $input);
+    if ($isEngagementPing) {
+        if ($engaged) $pdo->prepare($unbounceSql)->execute([':site' => $siteId, ':date' => $day]);
+        $pdo->commit();
+        http_response_code(204);
+        exit;
+    }
+
     $visit = $collection['visits'] && ($input['newVisit'] ?? false) === true ? 1 : 0;
     if ($event !== '') {
         check_dimension_budget($pdo, 'event_daily_stats', 'event_name', $event, $siteId, $day, 200);
@@ -76,8 +93,25 @@ try {
             'referrer', $referrer, $siteId, $day, 1000);
     }
 
-    $queries = [
-    ];
+    $campaign = null;
+    if ($event === '' && $collection['referrers']) {
+        $utm = array_map(static fn(string $key): string => clean_utm($input[$key] ?? ''),
+            ['source' => 'utm_source', 'medium' => 'utm_medium', 'campaign' => 'utm_campaign']);
+        if (implode('', $utm) !== '') {
+            $campaign = [
+                ':source' => $utm['source'] !== '' ? $utm['source'] : '(не указан)',
+                ':medium' => $utm['medium'] !== '' ? $utm['medium'] : '(не указан)',
+                ':campaign' => $utm['campaign'] !== '' ? $utm['campaign'] : '(не указана)',
+            ];
+            // Budget the whole combination: limiting utm_source alone would let
+            // one source create unbounded medium/campaign rows.
+            check_dimension_budget($pdo, 'campaign_daily_stats',
+                "utm_source || '|' || utm_medium || '|' || utm_campaign", implode('|', $campaign),
+                $siteId, $day, 1000);
+        }
+    }
+
+    $queries = [];
 
     if ($event !== '') {
         $queries[] = [
@@ -87,6 +121,9 @@ try {
              DO UPDATE SET events=events+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':event' => $event, ':visits' => $visit]
         ];
+        if ($engaged) {
+            $queries[] = [$unbounceSql, [':site' => $siteId, ':date' => $day]];
+        }
         if ($collection['referrers']) {
             $queries[] = [
                 'INSERT INTO source_event_daily_stats(site_id, stat_date, referrer, event_name, events, visits)
@@ -98,14 +135,19 @@ try {
         }
     } elseif ($collection['pageviews'] || $collection['visits']) {
         $pageview = $collection['pageviews'] ? 1 : 0;
+        $bounceDelta = $visit === 1 ? 1 : ($engaged ? -1 : 0);
         array_push(
             $queries,
             [
-                'INSERT INTO daily_stats(site_id, stat_date, pageviews, visits)
-                 VALUES(:site,:date,:pageviews,:visits)
+                'INSERT INTO daily_stats(site_id, stat_date, pageviews, visits, bounces)
+                 VALUES(:site,:date,:pageviews,:visits,:bounces)
                  ON CONFLICT(site_id,stat_date)
-                 DO UPDATE SET pageviews=pageviews+excluded.pageviews, visits=visits+excluded.visits',
-                [':site' => $siteId, ':date' => $day, ':pageviews' => $pageview, ':visits' => $visit]
+                 DO UPDATE SET pageviews=pageviews+excluded.pageviews, visits=visits+excluded.visits,
+                 bounces=MAX(bounces + :bounce_delta, 0)',
+                // PDO binds strings and SQLite orders TEXT above numbers, so the
+                // clamp for a new row is done here rather than with MAX(:x, 0).
+                [':site' => $siteId, ':date' => $day, ':pageviews' => $pageview, ':visits' => $visit,
+                    ':bounces' => max($bounceDelta, 0), ':bounce_delta' => $bounceDelta]
             ],
             [
                 'INSERT INTO hourly_stats(site_id, stat_hour, pageviews, visits)
@@ -144,6 +186,16 @@ try {
              DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
             [':site' => $siteId, ':date' => $day, ':referrer' => $referrer, ':visits' => $visit]
         ];
+
+        if ($campaign) {
+            $queries[] = [
+                'INSERT INTO campaign_daily_stats(site_id, stat_date, utm_source, utm_medium, utm_campaign, pageviews, visits)
+                 VALUES(:site,:date,:source,:medium,:campaign,1,:visits)
+                 ON CONFLICT(site_id,stat_date,utm_source,utm_medium,utm_campaign)
+                 DO UPDATE SET pageviews=pageviews+1, visits=visits+excluded.visits',
+                [':site' => $siteId, ':date' => $day, ':visits' => $visit] + $campaign
+            ];
+        }
     }
 
     if ($event === '' && $collection['tech']) {

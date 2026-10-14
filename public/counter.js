@@ -38,29 +38,84 @@
         return response.ok;
       } catch (_) { return false; }
     };
+    if (navigator.webdriver && !window.__clickShotAllowWebdriver
+      && !["localhost", "127.0.0.1"].includes(location.hostname || "")) return;
+    const VISIT_TIMEOUT_MS = 30 * 60 * 1000;
+    const ENGAGED_AFTER_MS = 15000;
+    const storagePrefix = `clickshot-metrika:${siteId}:`;
+    // Holds the last activity time; the legacy value "1" means an open visit.
+    const visitKey = `${storagePrefix}started`;
+    const engagedKey = `${storagePrefix}engaged`;
+    const goalPrefix = `${storagePrefix}event:`;
+    const isNewVisit = key => {
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (raw === "1") return false;
+        return key !== visitKey || !(Date.now() - Number(raw) <= VISIT_TIMEOUT_MS);
+      } catch (_) { return true; }
+    };
+    // Goal and engagement markers belong to one visit, so goal conversion and
+    // bounces are counted per visit rather than per tab session.
+    const resetVisitState = () => {
+      try {
+        for (let i = sessionStorage.length - 1; i >= 0; i--) {
+          const key = sessionStorage.key(i);
+          if (key === engagedKey || (key && key.startsWith(goalPrefix))) sessionStorage.removeItem(key);
+        }
+      } catch (_) {}
+    };
+    // The visit's first pageview counts a bounce on the server; the first later
+    // activity cancels it. The in-flight flag keeps concurrent pageviews, goals
+    // and the engagement timer from cancelling it twice; the marker is stored
+    // only once a report has been queued.
+    let engagementInFlight = false;
+    const claimEngagement = () => {
+      if (engagementInFlight) return false;
+      try {
+        if (sessionStorage.getItem(engagedKey) === "1") return false;
+      } catch (_) { return false; }
+      return engagementInFlight = true;
+    };
+    const settleEngagement = queued => {
+      engagementInFlight = false;
+      if (queued) try { sessionStorage.setItem(engagedKey, "1"); } catch (_) {}
+    };
+    const utmParams = () => {
+      const utm = {};
+      try {
+        const params = new URL(location.href).searchParams;
+        for (const name of ["utm_source", "utm_medium", "utm_campaign"]) {
+          const value = (params.get(name) || "").trim();
+          if (/^[a-zA-Z0-9_.-]{1,64}$/.test(value)) utm[name] = value;
+        }
+      } catch (_) {}
+      return utm;
+    };
     // ClickShot aggregates, including banner goals, are independent of Yandex consent.
     const send = async (name = "") => {
       const settings = await getCollection();
       if (!settings) return false;
-      const key = `clickshot-metrika:${siteId}:${name ? `event:${name}` : "started"}`;
-      let newVisit = false;
-      if (settings.visits) {
-        try { newVisit = sessionStorage.getItem(key) !== "1"; }
-        catch (_) { newVisit = true; }
-        newVisit = newVisit && !inFlightVisits.has(key);
+      const key = name ? goalPrefix + name : visitKey;
+      const newVisit = !!settings.visits && isNewVisit(key) && !inFlightVisits.has(key);
+      if (newVisit) {
+        inFlightVisits.add(key);
+        if (!name) resetVisitState();
       }
-      if (newVisit) inFlightVisits.add(key);
+      const engaged = !!settings.visits && !(newVisit && !name) && claimEngagement();
       const payload = {site: siteId, newVisit};
       if (name) payload.event = name;
-      else if (settings.pages) payload.path = location.pathname || "/";
+      else {
+        if (settings.pages) payload.path = location.pathname || "/";
+        if (settings.referrers) Object.assign(payload, utmParams());
+      }
+      if (engaged) payload.engaged = true;
       if (settings.referrers) payload.referrer = document.referrer || "";
       const queued = await post(payload);
-      if (newVisit) {
-        if (queued) {
-          try { sessionStorage.setItem(key, "1"); } catch (_) {}
-        }
-        inFlightVisits.delete(key);
+      if (settings.visits && queued) {
+        try { sessionStorage.setItem(key, name ? "1" : String(Date.now())); } catch (_) {}
       }
+      if (engaged) settleEngagement(queued);
+      if (newVisit) inFlightVisits.delete(key);
       return queued;
     };
     window.ClickShotMetrika = window.ClickShotMetrika || {};
@@ -128,9 +183,51 @@
         } catch (_) {}
       }, 30000);
     }
-    (window.__clickShotPendingGoals || []).splice(0, 100).forEach(name => window.ClickShotMetrika.goal(name));
-    const pageview = () => { send().catch(() => {}); };
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", pageview, {once: true});
-    else pageview();
+    let engagedTimer = null;
+    const scheduleEngagement = () => {
+      if (typeof setTimeout !== "function") return;
+      clearTimeout(engagedTimer);
+      engagedTimer = setTimeout(async () => {
+        const settings = await getCollection();
+        if (!settings || !settings.visits) return;
+        if (document.visibilityState === "hidden") {
+          // Time in a background tab is not engagement; wait for the user to return.
+          document.addEventListener("visibilitychange", scheduleEngagement, {once: true});
+          return;
+        }
+        // A ping without newVisit is the server's signal for engagement only.
+        if (claimEngagement()) settleEngagement(await post({site: siteId, engaged: true}));
+      }, ENGAGED_AFTER_MS);
+    };
+
+    // One pageview per distinct path: the initial load and SPA route changes.
+    let trackedPath = null;
+    const trackPageview = () => {
+      const path = location.pathname || "/";
+      if (path === trackedPath) return;
+      trackedPath = path;
+      send().catch(() => {});
+      scheduleEngagement();
+    };
+    // Goals queued before load go after the pageview, so they cannot report
+    // engagement ahead of the visit that they belong to.
+    const start = () => {
+      trackPageview();
+      (window.__clickShotPendingGoals || []).splice(0, 100).forEach(name => window.ClickShotMetrika.goal(name));
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, {once: true});
+    else start();
+    try {
+      for (const method of ["pushState", "replaceState"]) {
+        const original = history[method];
+        if (typeof original !== "function") continue;
+        history[method] = function (...args) {
+          const result = original.apply(this, args);
+          try { trackPageview(); } catch (_) {}
+          return result;
+        };
+      }
+      window.addEventListener("popstate", trackPageview);
+    } catch (_) {}
   } catch (_) {}
 })();

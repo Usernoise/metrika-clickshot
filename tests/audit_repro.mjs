@@ -156,7 +156,7 @@ try {
   const pending=[];
   const ui = {
     document:{querySelector:element}, currentGroup:'day',currentMetric:'visits',selectedSources:null,
-    Date, console, encodeURIComponent,fmt:String,esc:String,
+    Date, console, encodeURIComponent,fmt:String,fmtPercent:String,esc:String,
     applyCollectionVisibility:()=>{},syncSourceFilter:()=>{},
     fetch:url=>new Promise(resolve=>pending.push({url,resolve}))
   };
