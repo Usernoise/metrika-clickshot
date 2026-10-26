@@ -25,7 +25,7 @@
 .chart-controls{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-height:30px}.chart-controls>div:last-child{display:flex;align-items:center;height:30px}.metric-switch{display:inline-flex;align-items:center;gap:2px;height:30px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--soft)}.metric-tab{display:inline-flex;align-items:center;height:24px;border:0;border-radius:4px;padding:0 8px;background:transparent;color:var(--muted);font:500 10px var(--mono);cursor:pointer}.metric-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(10,10,10,.08)}.chart-controls .btn-group{display:inline-flex;align-items:center;height:30px;padding:0 9px}
 @media(max-width:760px){.chart-controls{flex-wrap:wrap;gap:6px}.panel-header:has(.chart-controls){align-items:flex-start}.chart-controls>div:last-child{margin-left:auto}}@media(max-width:480px){.chart-controls{justify-content:flex-start}.chart-controls>div:last-child{margin-left:0}}
 .source-filter{position:relative;font:10px var(--mono);color:var(--muted)}.source-filter summary{display:flex;align-items:center;height:30px;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff;color:var(--ink);white-space:nowrap}.source-filter summary::-webkit-details-marker{display:none}.source-filter summary:after{content:'⌄';margin-left:7px;color:var(--muted)}.source-filter[open] summary{border-color:#a3a3a3}.source-options{position:absolute;right:0;top:calc(100% + 5px);z-index:5;width:250px;padding:9px;background:#fff;border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 24px rgba(10,10,10,.12)}.source-options input[type="search"]{width:100%;min-height:30px;padding:5px 7px;font-size:11px}.source-option-list{max-height:190px;overflow:auto;margin:7px -2px}.source-option{display:flex;align-items:center;gap:7px;padding:6px 5px;color:#404040;cursor:pointer}.source-option:hover{background:var(--soft)}.source-option input{width:14px;height:14px;min-height:auto;accent-color:#a7dc00}.source-filter-actions{display:flex;align-items:center;gap:5px;padding-top:7px;border-top:1px solid var(--line)}.source-filter-actions button{min-height:28px;padding:4px 7px;border:1px solid var(--line);border-radius:5px;background:#fff;font:10px var(--mono);color:var(--ink)}.source-filter-actions button:last-child{margin-left:auto;background:var(--lime);border-color:var(--lime)}.source-filter[hidden]{display:none!important}
-.cookie-config select{text-transform:none}.slide-key-hint{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.cookie-config input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed}
+.cookie-config select{text-transform:none}.slide-key-hint{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}#slide-cookie-status.is-error{color:var(--danger);font-weight:600}.cookie-config input:disabled{background:var(--soft);color:var(--muted);cursor:not-allowed}
 header h1{margin-top:0}
 .app-tabs{display:flex;gap:4px;margin:0 0 18px;padding:5px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}.app-tab{flex:1;min-height:38px;padding:8px 12px;border:0;border-radius:7px;background:transparent;color:var(--muted);font:600 11px var(--mono);letter-spacing:.04em;text-transform:uppercase}.app-tab:hover{color:var(--ink);background:var(--soft)}.app-tab.active{background:var(--ink);color:var(--lime);box-shadow:0 2px 6px rgba(16,16,15,.16)}.app-tab-panel[hidden]{display:none!important}.counter-settings-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(360px,.85fr);gap:18px;align-items:start}.counter-settings-primary .section-title{margin-top:0}.counter-settings-primary .collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.counter-settings-primary .collection-item{min-height:104px}.counter-settings-sidebar{display:grid;gap:18px}.counter-settings-sidebar .snippet-panel,.counter-settings-sidebar .danger-zone{margin:0}.counter-settings-sidebar .snippet{font-size:10px}.danger-zone{border-color:#f0c7c3}.danger-zone .panel-header{border-color:#f0c7c3}.danger-zone-body{display:grid;gap:14px;padding:18px}.danger-zone-body .muted{max-width:550px}.danger-zone-body .btn-delete{justify-self:start}@media(max-width:980px){.counter-settings-layout{grid-template-columns:1fr}.counter-settings-primary .collection-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:640px){.app-tabs{gap:2px;padding:4px}.app-tab{min-height:36px;padding:7px 5px;font-size:9px}.counter-settings-primary .collection-grid{grid-template-columns:1fr}.danger-zone-body{align-items:stretch}.danger-zone-body .btn-delete{justify-self:stretch}}
 </style>
@@ -513,6 +513,7 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-block-metrika').checked = true;
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
+  document.querySelector('#slide-cookie-status').classList.remove('is-error');
   document.querySelector('#slide-cookie-status').textContent = c.enabled ? ((c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
   syncSlideParamField();
   updateSlidePreview();
@@ -694,7 +695,7 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     policy_url: document.querySelector('#slide-policy-url').value.trim(),
     param: document.querySelector('#slide-param').value.trim() || 'always',
     key: document.querySelector('#slide-key').value.trim(),
-    ym_counter: document.querySelector('#slide-ym-counter').value.trim(),
+    ym_counter: document.querySelector('#slide-ym-counter').value.replace(/\s+/g, ''),
     block_metrika: true,
     operator_name: document.querySelector('#slide-operator-name').value.trim(),
     operator_address: document.querySelector('#slide-operator-address').value.trim(),
@@ -707,7 +708,7 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     accent_text_color: document.querySelector('#slide-accent-text-color').value,
     reset_consent: document.querySelector('#slide-reset-consent').checked
   };
-  button.disabled = true; status.textContent = 'Сохраняем…';
+  button.disabled = true; status.textContent = 'Сохраняем…'; status.classList.remove('is-error');
   try {
     const r = await fetch('/api/sites.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:site, slide_cookie})});
     const d = await r.json();
@@ -716,7 +717,7 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     if (document.querySelector('#site').value !== site) return;
     renderSlideCookieSettings(); updateSnippet();
     status.textContent = 'Сохранено. Скопируйте обновлённый код подключения.';
-  } catch(e) { if (document.querySelector('#site').value === site) status.textContent = e.message || 'Не удалось сохранить Slide Cookie'; }
+  } catch(e) { if (document.querySelector('#site').value === site) { status.textContent = e.message || 'Не удалось сохранить Slide Cookie'; status.classList.add('is-error'); } }
   finally { button.disabled = false; }
 });
 

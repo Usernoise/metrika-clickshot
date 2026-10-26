@@ -71,6 +71,18 @@ function consent_ready(array $settings): bool
         && preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) === 1;
 }
 
+function consent_missing(array $settings): array
+{
+    $missing = [];
+    if ($settings['operator_name'] === '') $missing[] = 'укажите оператора ПД';
+    if ($settings['operator_address'] === '') $missing[] = 'укажите адрес оператора';
+    if (filter_var($settings['operator_email'], FILTER_VALIDATE_EMAIL) === false) $missing[] = 'укажите корректный email (латиницей)';
+    if (!consent_policy_url_valid($settings['policy_url'])) $missing[] = 'укажите ссылку на политику: /privacy или https://site.ru/privacy';
+    if (preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) !== 1) $missing[] = 'укажите ID Метрики — только цифры';
+    if (!$settings['block_metrika']) $missing[] = 'включите блокировку Метрики до согласия';
+    return $missing;
+}
+
 function clean_consent_details(array $input, array $settings, ?array $fallback): array
 {
     $settings = array_replace(consent_defaults(), $settings);
@@ -87,8 +99,9 @@ function clean_consent_details(array $input, array $settings, ?array $fallback):
     if ($settings['policy_url'] !== '' && !consent_policy_url_valid($settings['policy_url'])) {
         throw new InvalidArgumentException('Укажите рабочий путь или https-ссылку на политику, без заглушки #');
     }
-    if ($settings['enabled'] && (!consent_ready($settings) || !$settings['block_metrika'])) {
-        throw new InvalidArgumentException('Для Slide Cookie укажите оператора, адрес, email, политику и ID Метрики; включите блокировку до согласия');
+    if ($settings['enabled']) {
+        $missing = consent_missing($settings);
+        if ($missing) throw new InvalidArgumentException('Slide Cookie не сохранён: ' . implode('; ', $missing));
     }
     if ($fallback !== null) {
         $material = ['enabled', 'policy_url', 'ym_counter', 'block_metrika', 'operator_name',

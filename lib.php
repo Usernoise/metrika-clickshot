@@ -478,9 +478,10 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
             $settings[$key] = strtoupper($color);
         }
     }
-    if ($settings['policy_url'] !== '' && !preg_match('~^(?:https?://|/|\./|\.\./|\?|#)~i', $settings['policy_url'])) throw new InvalidArgumentException('Некорректная ссылка на политику');
+    if ($settings['policy_url'] !== '' && !preg_match('~^(?:https?://|/|\./|\.\./|\?|#)~i', $settings['policy_url'])) throw new InvalidArgumentException('Ссылка на политику должна начинаться с / или https://');
     if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $settings['param'])) throw new InvalidArgumentException('Некорректный параметр показа');
-    if (mb_strlen($settings['key']) > 128 || !preg_match('/^\d{0,20}$/', $settings['ym_counter'])) throw new InvalidArgumentException('Некорректная настройка Slide Cookie');
+    if (mb_strlen($settings['key']) > 128) throw new InvalidArgumentException('Значение параметра показа длиннее 128 символов');
+    if (!preg_match('/^\d{0,20}$/', $settings['ym_counter'])) throw new InvalidArgumentException('ID Яндекс.Метрики — только цифры, без пробелов');
     if ($settings['enabled'] && $settings['policy_url'] === '') throw new InvalidArgumentException('Укажите ссылку на политику для Slide Cookie');
     if (($value['reset_consent'] ?? false) === true) $settings['version']++;
     return clean_consent_details($value, $settings, $fallback);
