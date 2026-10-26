@@ -112,7 +112,7 @@ try {
   vm.runInNewContext(readFileSync(join(root,'public/counter.js'),'utf8'),context);
   await context.window.ClickShotMetrika.goal('test_goal');
   const goal = JSON.parse(await beacons[1].text());
-  check('Goal carries enabled source context',goal.referrer===context.document.referrer,goal);
+  check('Goal carries only the referrer origin without path or query',goal.referrer==='https://search.example/',goal);
   check('sendBeacon false triggers fetch fallback',fetches>0,{beacons:beacons.length,fetches,visitMarked:storage.has('clickshot-metrika:audit_site:started')});
   await context.window.ym(12345, 'reachGoal', 'metrika_goal');
   const bridged = JSON.parse(await beacons.at(-1).text());
@@ -155,9 +155,11 @@ try {
   element('#site').value='site_a'; element('#days').value='30';
   const pending=[];
   const ui = {
-    document:{querySelector:element}, currentGroup:'day',currentMetric:'visits',selectedSources:null,
+    document:{querySelector:element,dispatchEvent:()=>{}}, currentGroup:'day',currentMetric:'visits',selectedSources:null,
     Date, console, encodeURIComponent,fmt:String,fmtPercent:String,esc:String,
-    applyCollectionVisibility:()=>{},syncSourceFilter:()=>{},
+    applyCollectionVisibility:()=>{},syncSourceFilter:()=>{},applyDeltas:()=>{},
+    window:{},
+    CustomEvent:class{constructor(type,init){this.type=type;this.detail=init&&init.detail;}},
     fetch:url=>new Promise(resolve=>pending.push({url,resolve}))
   };
   const dashboard = readFileSync(join(root,'public/index.php'),'utf8');

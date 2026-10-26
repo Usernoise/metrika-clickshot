@@ -1,0 +1,1414 @@
+/* ClickShot Metrika — неоморфическая тема «Softline».
+ *
+ * Файл подключается всегда, но правила скоупятся селектором [data-theme="neu"]
+ * на <html> и потому не влияют на классическую тему, описанную в public/index.php.
+ * Переключение темы: кнопка с атрибутом data-theme-toggle, выбор хранится в
+ * localStorage под ключом clickshot:admin-theme.
+ *
+ * Идея: вся поверхность — один бледно-сине-серый цвет (#e6e9f0). Выпуклые
+ * элементы лепятся парой теней (белый блик сверху слева, серый shade снизу
+ * справа), вдавленные — той же парой, но инвертированной.
+ *
+ * Правило вложенности: выпуклая поверхность — это лист-карточка. Внутри неё
+ * живут только плоскости и вдавленные «ямы». Выпуклых карточек внутри выпуклых
+ * не бывает: секции (настройки, Slide Cookie) плоские, а их карточки — листья.
+ */
+
+/* Элементы неоморфической темы скрыты в классической. */
+.rail,
+.neu-period,
+.neu-kpi-delta,
+.neu-chart,
+.neu-donut,
+.neu-activity,
+.neu-ic {
+  display: none;
+}
+
+/* Переключатель темы — общий элемент обеих тем. */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle {
+  min-height: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: #404040;
+  font: 500 11px var(--mono);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  border-color: #a3a3a3;
+}
+
+[data-theme="neu"] {
+  --neu-surface: #e6e9f0;
+  --neu-shade: #c3c7d1;
+  --neu-light: #ffffff;
+  --neu-ink: #3b4256;
+  --neu-muted: #98a0b5;
+  --neu-accent: #5c7cfa;
+  --neu-teal: #3ec9a7;
+  --neu-amber: #f0a44a;
+  --neu-alert: #e3685f;
+
+  --neu-raised: -9px -9px 18px var(--neu-light), 9px 9px 18px var(--neu-shade);
+  --neu-raised-sm: -4px -4px 8px var(--neu-light), 4px 4px 8px var(--neu-shade);
+  --neu-raised-lg: -6px -6px 12px var(--neu-light), 6px 6px 12px var(--neu-shade);
+  --neu-inset: inset -4px -4px 8px var(--neu-light), inset 4px 4px 8px var(--neu-shade);
+  --neu-inset-sm: inset -3px -3px 6px var(--neu-light), inset 3px 3px 6px var(--neu-shade);
+  --neu-inset-lg: inset -5px -5px 10px var(--neu-light), inset 5px 5px 10px var(--neu-shade);
+
+  /* Общие токены панели переопределяем, чтобы существующие компоненты
+     переехали в неоморфику без правок в разметке. */
+  --ink: var(--neu-ink);
+  --muted: var(--neu-muted);
+  --line: transparent;
+  --soft: var(--neu-surface);
+  --lime: var(--neu-accent);
+  --lime-soft: var(--neu-surface);
+  --danger: var(--neu-alert);
+}
+
+[data-theme="neu"] html {
+  background: var(--neu-surface);
+}
+
+[data-theme="neu"] body.fc-app {
+  margin: 0 auto;
+  min-height: 100vh;
+  max-width: 1280px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  font: 13px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-theme="neu"] .wrap {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+[data-theme="neu"] .main {
+  padding: 0;
+}
+
+[data-theme="neu"] .app-nav,
+[data-theme="neu"] .app-tabs {
+  display: none;
+}
+
+/* ── Левый рельс: только навигация ─────────────────────────────── */
+
+[data-theme="neu"] .rail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  margin: 0;
+  padding: 24px 20px;
+  position: sticky;
+  top: 28px;
+  border-radius: 26px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .rail-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 4px;
+}
+
+[data-theme="neu"] .rail-brand b {
+  font: 600 15px var(--display);
+  letter-spacing: -0.02em;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .rail-brand span {
+  font: 500 10px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .rail-nav {
+  display: grid;
+  gap: 8px;
+}
+
+[data-theme="neu"] .rail-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--neu-muted);
+  font: 600 13px/1.2 var(--font);
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.25s ease, box-shadow 0.25s ease;
+}
+
+[data-theme="neu"] .rail-item:hover {
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .rail-item.is-active {
+  color: var(--neu-ink);
+  box-shadow: var(--neu-inset);
+}
+
+[data-theme="neu"] .rail-ic {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+[data-theme="neu"] .rail-item.is-active .rail-ic {
+  color: var(--neu-accent);
+}
+
+[data-theme="neu"] .rail-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(59, 66, 86, 0.08);
+}
+
+[data-theme="neu"] .rail-theme {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  color: var(--neu-accent);
+  font: 600 12px var(--font);
+  cursor: pointer;
+  box-shadow: var(--neu-raised-sm);
+}
+
+[data-theme="neu"] .rail-theme .rail-ic {
+  color: var(--neu-accent);
+}
+
+/* ── Шапка: заголовок, период, управление ─────────────────────── */
+
+[data-theme="neu"] header {
+  margin: 0;
+  padding: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+[data-theme="neu"] .neu-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+[data-theme="neu"] header h1 {
+  margin: 0;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] header .muted {
+  display: none;
+}
+
+[data-theme="neu"] .neu-period {
+  display: inline;
+  font: 10px var(--mono);
+  letter-spacing: 0.04em;
+  color: var(--neu-muted);
+  white-space: nowrap;
+}
+
+[data-theme="neu"] .controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+[data-theme="neu"] .neu-ic {
+  display: block;
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+[data-theme="neu"] .neu-btn-text {
+  display: none;
+}
+
+[data-theme="neu"] #reload,
+[data-theme="neu"] #export-csv {
+  width: 42px;
+  padding: 0;
+}
+
+/* ── Элементы управления ────────────────────────────────────────── */
+
+[data-theme="neu"] select,
+[data-theme="neu"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="search"]) {
+  min-height: 40px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-ink);
+  outline: none;
+}
+
+[data-theme="neu"] select:focus,
+[data-theme="neu"] input:focus {
+  outline: none;
+  box-shadow: var(--neu-inset), 0 0 0 3px rgba(92, 124, 250, 0.22);
+}
+
+[data-theme="neu"] #site {
+  min-width: 190px;
+  font-weight: 600;
+}
+
+[data-theme="neu"] input[type="color"] {
+  width: 46px;
+  height: 38px;
+  padding: 3px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+  cursor: pointer;
+}
+
+[data-theme="neu"] input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  flex: none;
+  border-radius: 7px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+  position: relative;
+  cursor: pointer;
+}
+
+[data-theme="neu"] input[type="checkbox"]:checked {
+  background-color: var(--neu-accent);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M4 12.5l5.2 5.2L20 6.8' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M4 12.5l5.2 5.2L20 6.8' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+[data-theme="neu"] .fc-btn,
+[data-theme="neu"] .btn-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 10px 15px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  color: var(--neu-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--neu-raised-sm);
+  transition: color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="neu"] .fc-btn:hover,
+[data-theme="neu"] .btn-copy:hover {
+  transform: none;
+  color: var(--neu-ink);
+  box-shadow: var(--neu-raised-lg);
+}
+
+[data-theme="neu"] .fc-btn-primary,
+[data-theme="neu"] .btn-copy {
+  color: var(--neu-accent);
+}
+
+[data-theme="neu"] .btn-delete {
+  color: var(--neu-alert);
+}
+
+[data-theme="neu"] .theme-toggle {
+  border: 0;
+  border-radius: 999px;
+  background: var(--neu-surface);
+  color: var(--neu-accent);
+  box-shadow: var(--neu-raised-sm);
+}
+
+/* Управление внутри выпуклой карточки — вдавленная «яма», а не ещё одна
+   выпуклая карточка. На поверхности страницы кнопки остаются выпуклыми. */
+[data-theme="neu"] .panel .fc-btn,
+[data-theme="neu"] .panel .btn-copy,
+[data-theme="neu"] .neu-card .fc-btn,
+[data-theme="neu"] .rail-theme,
+[data-theme="neu"] .panel .source-filter summary,
+[data-theme="neu"] .panel .btn-group {
+  box-shadow: var(--neu-inset-sm);
+}
+
+[data-theme="neu"] .btn-group.active {
+  color: var(--neu-accent);
+  box-shadow: var(--neu-inset);
+}
+
+[data-theme="neu"] .source-filter[open] summary {
+  color: var(--neu-accent);
+}
+
+/* ── KPI-карточки ───────────────────────────────────────────────── */
+
+[data-theme="neu"] .cards {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+[data-theme="neu"] .card {
+  min-height: 0;
+  padding: 18px 18px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .card .label {
+  display: block;
+  min-height: 26px;
+  color: var(--neu-muted);
+  font: 500 10px/1.3 var(--mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+[data-theme="neu"] .card .value {
+  margin: 8px 0 4px;
+  font: 600 30px/1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-kpi-delta {
+  display: block;
+  font: 600 12px var(--font);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .neu-kpi-delta.is-up {
+  color: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-kpi-delta.is-down {
+  color: var(--neu-alert);
+}
+
+/* ── Сетка вкладки «Статистика» ────────────────────────────────── */
+
+[data-theme="neu"] .app-tab-panel[data-tab-panel="stats"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: stretch;
+}
+
+[data-theme="neu"] .cards {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+[data-theme="neu"] #chart-panel {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+[data-theme="neu"] .neu-donut {
+  display: flex;
+  flex-direction: column;
+  grid-column: 2;
+  grid-row: 2;
+}
+
+[data-theme="neu"] .neu-activity {
+  display: block;
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+[data-theme="neu"] #detail-panels,
+[data-theme="neu"] #campaigns-panel,
+[data-theme="neu"] #tech-panels,
+[data-theme="neu"] #events-panel {
+  grid-column: 1 / -1;
+}
+
+/* ── Карточки-листья ────────────────────────────────────────────── */
+
+[data-theme="neu"] .panel {
+  margin-bottom: 0;
+  border: 0;
+  border-radius: 24px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .panel:hover {
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .panel-header {
+  min-height: 0;
+  padding: 22px 24px 0;
+  border-bottom: 0;
+  align-items: flex-start;
+}
+
+[data-theme="neu"] .panel-header h2,
+[data-theme="neu"] .panel h2,
+[data-theme="neu"] .neu-card h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-card {
+  padding: 24px;
+  border-radius: 24px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .neu-card h2 {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+[data-theme="neu"] .neu-card h2 small {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--neu-muted);
+}
+
+/* ── График динамики ────────────────────────────────────────────── */
+
+[data-theme="neu"] .chart-panel {
+  padding-bottom: 22px;
+}
+
+[data-theme="neu"] .chart-panel .chart {
+  display: none;
+}
+
+[data-theme="neu"] .metric-switch {
+  display: none;
+}
+
+[data-theme="neu"] .chart-controls {
+  gap: 12px;
+}
+
+[data-theme="neu"] .chart-controls > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: auto;
+}
+
+[data-theme="neu"] .neu-chart {
+  display: block;
+  padding: 14px 24px 0;
+}
+
+[data-theme="neu"] .neu-chart-box {
+  position: relative;
+  height: 220px;
+}
+
+[data-theme="neu"] .neu-chart-box svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+[data-theme="neu"] .neu-grid line {
+  stroke: rgba(59, 66, 86, 0.08);
+}
+
+[data-theme="neu"] .neu-grad-a {
+  stop-color: var(--neu-accent);
+}
+
+[data-theme="neu"] .neu-grad-b {
+  stop-color: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-grad-a:first-child,
+[data-theme="neu"] .neu-grad-b:first-child {
+  stop-opacity: 0.34;
+}
+
+[data-theme="neu"] .neu-grad-a:last-child,
+[data-theme="neu"] .neu-grad-b:last-child {
+  stop-opacity: 0;
+}
+
+[data-theme="neu"] #neuLineA {
+  stroke: var(--neu-accent);
+}
+
+[data-theme="neu"] #neuLineB {
+  stroke: var(--neu-teal);
+}
+
+[data-theme="neu"] #neuDotA {
+  fill: var(--neu-accent);
+  stroke: var(--neu-surface);
+}
+
+[data-theme="neu"] .neu-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .neu-legend {
+  display: flex;
+  gap: 18px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+
+[data-theme="neu"] .neu-legend span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .neu-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 4px;
+  display: block;
+}
+
+[data-theme="neu"] .neu-swatch.is-a {
+  background: var(--neu-accent);
+}
+
+[data-theme="neu"] .neu-swatch.is-b {
+  background: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-chart-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+[data-theme="neu"] .neu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--neu-muted);
+  font: 13px var(--font);
+  cursor: pointer;
+}
+
+[data-theme="neu"] .neu-toggle-track {
+  width: 52px;
+  height: 28px;
+  border-radius: 999px;
+  position: relative;
+  flex: none;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+}
+
+[data-theme="neu"] .neu-toggle-track i {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #fff, #dfe3ec);
+  box-shadow: 2px 2px 5px rgba(59, 66, 86, 0.22);
+  transition: left 0.35s cubic-bezier(0.5, 1.4, 0.5, 1);
+}
+
+[data-theme="neu"] .neu-toggle.is-on .neu-toggle-track i {
+  left: 28px;
+  background: #fff;
+}
+
+[data-theme="neu"] .neu-toggle.is-on .neu-toggle-label {
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-meta {
+  font: 10px var(--mono);
+  letter-spacing: 0.04em;
+  color: var(--neu-muted);
+  white-space: nowrap;
+}
+
+/* ── Донат «Источники трафика» ──────────────────────────────────── */
+
+[data-theme="neu"] .neu-ring-wrap {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  margin: 18px 0 6px;
+  position: relative;
+}
+
+[data-theme="neu"] .neu-ring {
+  width: 158px;
+  height: 158px;
+}
+
+[data-theme="neu"] .neu-ring circle {
+  fill: none;
+  stroke-width: 15;
+  stroke-linecap: round;
+}
+
+[data-theme="neu"] .neu-ring-bg {
+  stroke: #d7dbe5;
+}
+
+[data-theme="neu"] .neu-ring-arc {
+  transition: stroke-dasharray 1.2s cubic-bezier(0.4, 1.2, 0.4, 1);
+}
+
+[data-theme="neu"] .neu-ring-arc.is-1 {
+  stroke: var(--neu-accent);
+}
+
+[data-theme="neu"] .neu-ring-arc.is-2 {
+  stroke: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-ring-arc.is-3 {
+  stroke: var(--neu-amber);
+}
+
+[data-theme="neu"] .neu-ring-ctr {
+  position: absolute;
+  width: 96px;
+  text-align: center;
+}
+
+[data-theme="neu"] .neu-ring-ctr b {
+  display: block;
+  font: 600 24px/1.1 var(--display);
+  letter-spacing: -0.03em;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-ring-ctr span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .neu-segments {
+  display: grid;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+[data-theme="neu"] .neu-seg {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-seg i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: block;
+}
+
+[data-theme="neu"] .neu-seg i.is-a {
+  background: var(--neu-accent);
+}
+
+[data-theme="neu"] .neu-seg i.is-b {
+  background: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-seg i.is-c {
+  background: var(--neu-amber);
+}
+
+[data-theme="neu"] .neu-seg b {
+  font-weight: 600;
+}
+
+/* ── Список активности ──────────────────────────────────────────── */
+
+[data-theme="neu"] .neu-rows {
+  margin-top: 6px;
+}
+
+[data-theme="neu"] .neu-row {
+  display: grid;
+  grid-template-columns: 38px 1fr auto auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  box-shadow: inset 0 -1px 0 rgba(59, 66, 86, 0.07);
+}
+
+[data-theme="neu"] .neu-row:last-child {
+  box-shadow: none;
+}
+
+[data-theme="neu"] .neu-row-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+}
+
+[data-theme="neu"] .neu-row-nm {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .neu-row-sb {
+  font-size: 12px;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .neu-pill {
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--neu-muted);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+}
+
+[data-theme="neu"] .neu-pill.is-up {
+  color: var(--neu-teal);
+}
+
+[data-theme="neu"] .neu-pill.is-down {
+  color: var(--neu-alert);
+}
+
+[data-theme="neu"] .neu-pill.is-flat {
+  color: var(--neu-amber);
+}
+
+[data-theme="neu"] .neu-time {
+  font-size: 12px;
+  color: var(--neu-muted);
+  min-width: 54px;
+  text-align: right;
+}
+
+[data-theme="neu"] .neu-empty {
+  padding: 22px 0;
+  font-size: 13px;
+  color: var(--neu-muted);
+}
+
+/* ── Таблицы ────────────────────────────────────────────────────── */
+
+[data-theme="neu"] .table-panel {
+  margin-bottom: 0;
+  overflow: auto;
+}
+
+[data-theme="neu"] .table-panel > h2 {
+  padding: 20px 22px 10px;
+}
+
+[data-theme="neu"] table {
+  font-size: 12.5px;
+}
+
+[data-theme="neu"] th,
+[data-theme="neu"] td {
+  padding: 11px 22px;
+  border-bottom: 1px solid rgba(59, 66, 86, 0.07);
+}
+
+[data-theme="neu"] th {
+  color: var(--neu-muted);
+  font-weight: 600;
+}
+
+[data-theme="neu"] tbody tr:hover {
+  background: rgba(92, 124, 250, 0.05);
+}
+
+/* ── Настройки счётчика: плоская секция + карточки-листья ──────── */
+
+[data-theme="neu"] .counter-settings-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(400px, 0.9fr);
+  gap: 22px;
+}
+
+[data-theme="neu"] .counter-settings-sidebar {
+  gap: 22px;
+}
+
+/* Заголовок раздела уже есть в шапке страницы — отдельная метка не нужна. */
+[data-theme="neu"] .section-title {
+  display: none;
+}
+
+[data-theme="neu"] .settings-head {
+  display: block;
+  padding: 0;
+  margin: 0 0 16px;
+  border-bottom: 0;
+}
+
+[data-theme="neu"] .settings-head h2 {
+  font-size: 18px;
+  margin: 0 0 5px;
+}
+
+[data-theme="neu"] .settings-head .muted {
+  font-size: 12px;
+  color: var(--neu-muted);
+}
+
+/* Контейнер настроек — плоская секция, карточки внутри неё — листья. */
+[data-theme="neu"] .collection-panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme="neu"] .settings-head {
+  display: block;
+  padding: 0;
+  margin: 0 0 16px;
+  border-bottom: 0;
+}
+
+[data-theme="neu"] .settings-head h2 {
+  font-size: 17px;
+  margin: 0 0 4px;
+}
+
+[data-theme="neu"] .settings-head .muted {
+  font-size: 12px;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .collection-grid {
+  gap: 14px;
+}
+
+[data-theme="neu"] .counter-settings-primary .collection-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+[data-theme="neu"] .collection-item {
+  padding: 16px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+/* Базовый ховер поднимает карточку сдвигом — в неоморфике только мягкая тень. */
+[data-theme="neu"] .collection-item:hover {
+  transform: none;
+  border-color: transparent;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .collection-item strong {
+  display: block;
+  font-size: 12.5px;
+  color: var(--neu-ink);
+}
+
+[data-theme="neu"] .collection-item span span {
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .collection-footer {
+  padding-top: 18px;
+}
+
+[data-theme="neu"] .snippet-panel {
+  padding: 20px;
+}
+
+[data-theme="neu"] .snippet {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  color: var(--neu-ink);
+  box-shadow: var(--neu-inset-lg);
+}
+
+/* Статус — отдельной строкой, кнопки — компактные и не растягиваются. */
+[data-theme="neu"] .snippet-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="neu"] .snippet-status {
+  flex: 1 1 100%;
+  order: -1;
+  margin: 0 0 2px;
+}
+
+[data-theme="neu"] .snippet-actions .fc-btn {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 8px 13px;
+  font-size: 12px;
+}
+
+[data-theme="neu"] .danger-zone {
+  padding: 20px;
+}
+
+[data-theme="neu"] .danger-zone .panel-header {
+  padding: 0 0 12px;
+}
+
+[data-theme="neu"] .danger-zone-body {
+  padding: 0;
+}
+
+[data-theme="neu"] .danger-zone-body .muted {
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .snippet-status.is-ok {
+  color: var(--neu-teal);
+}
+
+/* ── Slide Cookie: плоская секция + карточки-листья ────────────── */
+
+[data-theme="neu"] #slide-cookie-panel {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme="neu"] #slide-cookie-panel .panel-header {
+  display: block;
+  padding: 0 0 18px;
+  border-bottom: 0;
+}
+
+[data-theme="neu"] #slide-cookie-panel .panel-header h2 {
+  font-size: 19px;
+  margin: 0 0 4px;
+}
+
+[data-theme="neu"] .slide-grid {
+  padding: 0;
+  gap: 20px;
+}
+
+/* Пока конфигурация скрыта: слева переключатель и подсказка, справа превью. */
+[data-theme="neu"] #slide-cookie-panel:has(#slide-cookie-config[hidden]) {
+  --neu-left-col: calc((100% - 20px) / 2.15);
+}
+
+[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-areas:
+    "toggle preview"
+    "note   preview";
+  align-items: start;
+}
+
+/* Сохранить — под тем же переключателем, а не в дальнем углу. */
+[data-theme="neu"] #slide-cookie-panel:has(#slide-cookie-config[hidden]) .collection-footer {
+  max-width: var(--neu-left-col);
+  padding: 0;
+  margin-top: 20px;
+}
+
+[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) > div {
+  display: contents;
+}
+
+[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .collection-item {
+  grid-area: toggle;
+}
+
+[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .cookie-note {
+  grid-area: note;
+  margin-top: 0;
+}
+
+[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .sc-preview {
+  grid-area: preview;
+  margin-top: 0;
+}
+
+/* Заголовок раздела уже есть в шапке страницы. */
+[data-theme="neu"] #slide-cookie-panel .panel-header h2 {
+  display: none;
+}
+
+[data-theme="neu"] .cookie-config {
+  padding: 0;
+  gap: 14px;
+}
+
+[data-theme="neu"] .cookie-config label {
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .cookie-config label .muted {
+  text-transform: none;
+  font-size: 11px;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .cookie-note {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 0;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .sc-preview {
+  margin-top: 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+  overflow: hidden;
+}
+
+[data-theme="neu"] .sc-preview-head {
+  border-bottom: 0;
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .sc-preview-stage {
+  min-height: 320px;
+  padding: 20px 20px 46px;
+  background: rgba(59, 66, 86, 0.82);
+  backdrop-filter: none;
+}
+
+[data-theme="neu"] .sc-preview-dialog {
+  box-shadow: 0 24px 48px rgba(59, 66, 86, 0.28);
+}
+
+/* ── Фильтр источников, ошибки, модалка ─────────────────────────── */
+
+[data-theme="neu"] .source-filter summary {
+  height: 34px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-sm);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .source-options {
+  padding: 12px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+
+[data-theme="neu"] .source-option:hover {
+  background: transparent;
+  color: var(--neu-accent);
+}
+
+[data-theme="neu"] .source-option input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  border-radius: 5px;
+  accent-color: var(--neu-accent);
+}
+
+[data-theme="neu"] .source-filter-actions {
+  border-top: 0;
+}
+
+[data-theme="neu"] .source-filter-actions button {
+  border: 0;
+  border-radius: 10px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised-sm);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .source-filter-actions button:last-child {
+  background: var(--neu-surface);
+  color: var(--neu-accent);
+}
+
+[data-theme="neu"] .btn-group {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .btn-group.active {
+  color: var(--neu-accent);
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+}
+
+[data-theme="neu"] .error {
+  border: 0;
+  border-radius: 14px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset);
+  color: var(--neu-alert);
+}
+
+[data-theme="neu"] .site-modal {
+  background: rgba(59, 66, 86, 0.45);
+  backdrop-filter: none;
+}
+
+[data-theme="neu"] .site-modal-card {
+  padding: 26px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+  transform: none;
+}
+
+[data-theme="neu"] .site-modal.is-open .site-modal-card {
+  transform: none;
+}
+
+[data-theme="neu"] .site-modal-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--neu-surface);
+  box-shadow: var(--neu-inset-sm);
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .modal-field {
+  color: var(--neu-muted);
+}
+
+[data-theme="neu"] .footnote {
+  color: var(--neu-muted);
+}
+
+/* ── Адаптив ────────────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  [data-theme="neu"] body.fc-app {
+    padding: 18px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  [data-theme="neu"] .rail {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 18px;
+  }
+
+  [data-theme="neu"] .rail-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  [data-theme="neu"] .rail-foot {
+    margin: 0 0 0 auto;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  [data-theme="neu"] .rail-theme {
+    width: auto;
+  }
+}
+
+@media (max-width: 860px) {
+  [data-theme="neu"] .app-tab-panel[data-tab-panel="stats"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-theme="neu"] .cards,
+  [data-theme="neu"] #chart-panel,
+  [data-theme="neu"] .neu-donut,
+  [data-theme="neu"] .neu-activity,
+  [data-theme="neu"] #detail-panels,
+  [data-theme="neu"] #campaigns-panel,
+  [data-theme="neu"] #tech-panels,
+  [data-theme="neu"] #events-panel {
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  [data-theme="neu"] .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  [data-theme="neu"] .card {
+    padding: 16px 14px;
+  }
+
+  [data-theme="neu"] .card .value {
+    font-size: 24px;
+  }
+
+  [data-theme="neu"] .controls {
+    justify-content: flex-start;
+  }
+
+  [data-theme="neu"] .neu-row {
+    grid-template-columns: 34px 1fr auto;
+    gap: 12px;
+  }
+
+  [data-theme="neu"] .neu-pill {
+    display: none;
+  }
+
+  [data-theme="neu"] .counter-settings-primary .collection-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="neu"] *,
+  [data-theme="neu"] *::before,
+  [data-theme="neu"] *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

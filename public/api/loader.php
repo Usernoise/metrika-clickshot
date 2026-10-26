@@ -34,7 +34,11 @@ if ($site['slide_cookie']['enabled']) {
         'ACCENT_COLOR' => $site['slide_cookie']['accent_color'],
         'DARK_COLOR' => $site['slide_cookie']['dark_color'],
         'ACCENT_TEXT_COLOR' => $site['slide_cookie']['accent_text_color'],
-        'STORAGE_KEY' => 'clickshot:cookie-consent:' . $siteId . ':v' . $site['slide_cookie']['version'],
+        'STORAGE_KEY' => 'clickshot:cookie-choice:' . $siteId,
+        'SITE_ID' => $siteId,
+        'DOCUMENT' => consent_document($site['slide_cookie']),
+        'READY' => consent_ready($site['slide_cookie']),
+        'STRICT_PRECONSENT' => $site['slide_cookie']['strict_preconsent'],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';';
     readfile(dirname(__DIR__) . '/slide-cookie.js');
 }

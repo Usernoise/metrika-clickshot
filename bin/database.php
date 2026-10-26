@@ -24,6 +24,8 @@ try {
         $copy = new PDO('sqlite:' . $destination);
         if ($copy->query('PRAGMA integrity_check')->fetchColumn() !== 'ok') throw new RuntimeException('Backup verification failed');
         echo "Backup verified\n";
+    } elseif ($command === 'prune-consent') {
+        echo 'Deleted expired receipts: ' . prune_consent(db()) . PHP_EOL;
     } elseif ($command === 'audit') {
         // Counts only: never print stored paths, domains or secrets.
         $pdo = db();
@@ -36,7 +38,7 @@ try {
         }
         echo json_encode($report, JSON_PRETTY_PRINT) . PHP_EOL;
     } else {
-        throw new RuntimeException('Usage: php bin/database.php migrate | backup NEW_PATH | audit');
+        throw new RuntimeException('Usage: php bin/database.php migrate | backup NEW_PATH | audit | prune-consent');
     }
 } catch (Throwable $error) {
     fwrite(STDERR, $error->getMessage() . PHP_EOL);

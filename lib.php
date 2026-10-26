@@ -11,7 +11,9 @@ function app_config(): array
     return $config;
 }
 
-const SCHEMA_VERSION = 2;
+require_once __DIR__ . '/consent.php';
+
+const SCHEMA_VERSION = 3;
 
 function db(bool $forMigration = false): PDO
 {
@@ -273,6 +275,7 @@ SQL);
         SELECT id, 1, 1, 1, 1, 0, '" . date(DATE_ATOM) . "' FROM sites"
     );
     $pdo->exec('CREATE TABLE IF NOT EXISTS ingest_budget (site_id TEXT PRIMARY KEY, minute INTEGER NOT NULL, hits INTEGER NOT NULL)');
+    migrate_consent($pdo);
     // Triggers protect both old and newly created tables without rewriting history.
     foreach (site_data_tables() as $table) {
         $pdo->exec("CREATE TRIGGER IF NOT EXISTS guard_{$table} BEFORE INSERT ON {$table}
@@ -295,7 +298,7 @@ function site_data_tables(): array
         'referrer_daily_stats', 'browser_daily_stats', 'os_daily_stats', 'device_daily_stats',
         'event_daily_stats', 'source_page_daily_stats', 'source_browser_daily_stats',
         'source_os_daily_stats', 'source_device_daily_stats', 'source_event_daily_stats',
-        'campaign_daily_stats', 'ingest_budget'];
+        'campaign_daily_stats', 'ingest_budget', 'site_consent_settings', 'consent_documents', 'consent_receipts', 'consent_budget'];
 }
 
 function api_error(Throwable $error): never
@@ -328,13 +331,13 @@ function require_auth(): void
     }
 }
 
-function json_input(): array
+function json_input(int $limit = 8192): array
 {
     if (strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0])) !== 'application/json') {
         respond_json(415, ['ok' => false, 'error' => 'Ожидался application/json']);
     }
-    $raw = file_get_contents('php://input', false, null, 0, 8193);
-    if ($raw === false || strlen($raw) > 8192) {
+    $raw = file_get_contents('php://input', false, null, 0, $limit + 1);
+    if ($raw === false || strlen($raw) > $limit) {
         throw new InvalidArgumentException('Некорректное тело запроса');
     }
     $data = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
@@ -438,7 +441,7 @@ function site_by_id(string $siteId): ?array
 
 function slide_cookie_settings_from_row(array $row): array
 {
-    return [
+    return array_replace(consent_details((string)($row['id'] ?? $row['site_id'] ?? '')), [
         'enabled' => (bool)($row['slide_cookie_enabled'] ?? false),
         'policy_url' => (string)($row['slide_cookie_policy_url'] ?? ''),
         'param' => (string)($row['slide_cookie_param'] ?? 'always'),
@@ -449,7 +452,7 @@ function slide_cookie_settings_from_row(array $row): array
         'dark_color' => (string)($row['slide_cookie_dark_color'] ?? '#0A0A0A'),
         'accent_text_color' => (string)($row['slide_cookie_accent_text_color'] ?? '#C5FF1A'),
         'version' => max(1, (int)($row['slide_cookie_version'] ?? 1)),
-    ];
+    ]);
 }
 
 function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): array
@@ -459,6 +462,7 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
         'block_metrika' => true, 'ym_counter' => '', 'accent_color' => '#C5FF1A',
         'dark_color' => '#0A0A0A', 'accent_text_color' => '#C5FF1A', 'version' => 1,
     ];
+    $settings = array_replace(consent_defaults(), $settings);
     if ($value === null) return $settings;
     if (!is_array($value)) throw new InvalidArgumentException('Некорректные настройки Slide Cookie');
     foreach (['enabled', 'block_metrika'] as $key) {
@@ -479,7 +483,7 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
     if (mb_strlen($settings['key']) > 128 || !preg_match('/^\d{0,20}$/', $settings['ym_counter'])) throw new InvalidArgumentException('Некорректная настройка Slide Cookie');
     if ($settings['enabled'] && $settings['policy_url'] === '') throw new InvalidArgumentException('Укажите ссылку на политику для Slide Cookie');
     if (($value['reset_consent'] ?? false) === true) $settings['version']++;
-    return $settings;
+    return clean_consent_details($value, $settings, $fallback);
 }
 
 function site_collection_settings(string $siteId): array

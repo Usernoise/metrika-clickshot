@@ -9,13 +9,24 @@
     const endpoint = `${scriptUrl.origin}/api/hit.php`;
     const bootstrap = window.__clickShotBootstrap;
     let collection = bootstrap && bootstrap.site === siteId ? bootstrap.collection : null;
+    const consentEnabled = !!(bootstrap && bootstrap.site === siteId && bootstrap.slide_cookie?.enabled);
+    const strictPreconsent = consentEnabled && bootstrap.slide_cookie.strict_preconsent !== false;
+    const memory = new Map();
+    const useMemory = () => strictPreconsent && !window.ClickShotConsent?.getState().analytics;
+    const analyticsStorage = {
+      getItem: key => useMemory() ? memory.get(key) ?? null : sessionStorage.getItem(key),
+      setItem: (key, value) => useMemory() ? memory.set(key, value) : sessionStorage.setItem(key, value),
+      removeItem: key => useMemory() ? memory.delete(key) : sessionStorage.removeItem(key),
+      get length() { return useMemory() ? memory.size : sessionStorage.length; },
+      key: index => useMemory() ? [...memory.keys()][index] ?? null : sessionStorage.key(index),
+    };
     let configRequest;
     const inFlightVisits = new Set();
     const getCollection = () => {
       if (collection) return Promise.resolve(collection);
       if (!configRequest) {
         configRequest = fetch(`${scriptUrl.origin}/api/config.php?site=${encodeURIComponent(siteId)}`,
-          {mode: "cors", credentials: "omit", cache: "no-store"})
+          {mode: "cors", credentials: "omit", cache: "no-store", referrerPolicy:"no-referrer"})
           .then(async response => {
             const data = await response.json();
             if (!response.ok || !data.collection) return null;
@@ -28,13 +39,13 @@
     const post = async payload => {
       const body = JSON.stringify(payload);
       try {
-        if (navigator.sendBeacon && navigator.sendBeacon(endpoint, new Blob([body], {type: "application/json"}))) {
+        if (!consentEnabled && navigator.sendBeacon && navigator.sendBeacon(endpoint, new Blob([body], {type: "application/json"}))) {
           return true; // Queued by the browser; not a server delivery receipt.
         }
       } catch (_) {}
       try {
         const response = await fetch(endpoint, {method: "POST", mode: "cors", credentials: "omit",
-          keepalive: true, headers: {"Content-Type": "application/json"}, body});
+          referrerPolicy: "no-referrer", keepalive: true, headers: {"Content-Type": "application/json"}, body});
         return response.ok;
       } catch (_) { return false; }
     };
@@ -49,7 +60,7 @@
     const goalPrefix = `${storagePrefix}event:`;
     const isNewVisit = key => {
       try {
-        const raw = sessionStorage.getItem(key);
+        const raw = analyticsStorage.getItem(key);
         if (raw === "1") return false;
         return key !== visitKey || !(Date.now() - Number(raw) <= VISIT_TIMEOUT_MS);
       } catch (_) { return true; }
@@ -58,9 +69,9 @@
     // bounces are counted per visit rather than per tab session.
     const resetVisitState = () => {
       try {
-        for (let i = sessionStorage.length - 1; i >= 0; i--) {
-          const key = sessionStorage.key(i);
-          if (key === engagedKey || (key && key.startsWith(goalPrefix))) sessionStorage.removeItem(key);
+        for (let i = analyticsStorage.length - 1; i >= 0; i--) {
+          const key = analyticsStorage.key(i);
+          if (key === engagedKey || (key && key.startsWith(goalPrefix))) analyticsStorage.removeItem(key);
         }
       } catch (_) {}
     };
@@ -72,13 +83,30 @@
     const claimEngagement = () => {
       if (engagementInFlight) return false;
       try {
-        if (sessionStorage.getItem(engagedKey) === "1") return false;
+        if (analyticsStorage.getItem(engagedKey) === "1") return false;
       } catch (_) { return false; }
       return engagementInFlight = true;
     };
     const settleEngagement = queued => {
       engagementInFlight = false;
-      if (queued) try { sessionStorage.setItem(engagedKey, "1"); } catch (_) {}
+      if (queued) try { analyticsStorage.setItem(engagedKey, "1"); } catch (_) {}
+    };
+    const safePath = value => {
+      const parts = String(value || '/').split('/');
+      return parts.map((raw, index) => {
+        let part = raw;
+        try { for (let i=0;i<3;i++) { const decoded=decodeURIComponent(part); if(decoded===part) break; part=decoded; } }
+        catch (_) { return ':id'; }
+        if (/[\\/%@\u0000-\u001f]/.test(part) || /\d{5,}/.test(part)
+          || /^[a-f0-9]{8}-[a-f0-9-]{27}$/i.test(part)
+          || /^[A-Za-z0-9_-]{24,}$/.test(part)
+          || /^(?:token|reset-password|access-token|email|phone)$/i.test(parts[index-1] || '')) return ':id';
+        return part;
+      }).join('/').slice(0,500);
+    };
+    const safeReferrer = () => {
+      try { const url = new URL(document.referrer); return /^https?:$/.test(url.protocol) ? url.origin + '/' : ''; }
+      catch (_) { return ''; }
     };
     const utmParams = () => {
       const utm = {};
@@ -105,22 +133,27 @@
       const payload = {site: siteId, newVisit};
       if (name) payload.event = name;
       else {
-        if (settings.pages) payload.path = location.pathname || "/";
+        if (settings.pages) payload.path = safePath(location.pathname);
         if (settings.referrers) Object.assign(payload, utmParams());
       }
       if (engaged) payload.engaged = true;
-      if (settings.referrers) payload.referrer = document.referrer || "";
+      if (settings.referrers) payload.referrer = safeReferrer();
       const queued = await post(payload);
       if (settings.visits && queued) {
-        try { sessionStorage.setItem(key, name ? "1" : String(Date.now())); } catch (_) {}
+        try { analyticsStorage.setItem(key, name ? "1" : String(Date.now())); } catch (_) {}
       }
       if (engaged) settleEngagement(queued);
       if (newVisit) inFlightVisits.delete(key);
       return queued;
     };
+    let counterStarted = false;
     window.ClickShotMetrika = window.ClickShotMetrika || {};
     window.ClickShotMetrika.goal = name => {
       if (typeof name !== "string" || !/^[a-z][a-z0-9_]{1,63}$/.test(name)) return Promise.resolve(false);
+      if (!counterStarted) {
+        (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(name);
+        return Promise.resolve(true);
+      }
       return send(name).catch(() => false);
     };
     // Existing Yandex Metrika targets become ClickShot events without adding a
@@ -176,6 +209,8 @@
       const watcher = setInterval(wrapYm, 250);
       setTimeout(() => {
         clearInterval(watcher);
+        // Consent may arrive much later: preserve its assignment hook without polling.
+        if (consentEnabled) return;
         // Return a normal writable global after the Metrika startup period.
         try {
           const current = window.ym;
@@ -183,6 +218,13 @@
         } catch (_) {}
       }, 30000);
     }
+    if (consentEnabled) window.addEventListener('clickshot:consent', event => {
+      if (event.detail.analytics) return;
+      memory.clear();
+      try {
+        Object.keys(sessionStorage).filter(key => key.startsWith(storagePrefix)).forEach(key => sessionStorage.removeItem(key));
+      } catch (_) {}
+    });
     let engagedTimer = null;
     const scheduleEngagement = () => {
       if (typeof setTimeout !== "function") return;
@@ -212,6 +254,7 @@
     // Goals queued before load go after the pageview, so they cannot report
     // engagement ahead of the visit that they belong to.
     const start = () => {
+      counterStarted = true;
       trackPageview();
       (window.__clickShotPendingGoals || []).splice(0, 100).forEach(name => window.ClickShotMetrika.goal(name));
     };

@@ -13,4 +13,6 @@ foreach ($cases as [$html,$expected]) {
 }
 $result=inspect_installation('<script async src="https://metrika.clickshot.ru/counter.js?id=abc"></script><script src="https://mc.yandex.ru/metrika/tag.js"></script>','abc','metrika.clickshot.ru');
 if ($result['warnings'] !== ['asynchronous_counter','static_metrika_script']) throw new RuntimeException('Missing warnings');
+$managed=inspect_installation('<script src="https://www.googletagmanager.com/gtag/js?id=test"></script><script>load("https://mc.yandex.ru/metrika/tag.js")</script>', 'abc', 'metrika.clickshot.ru');
+if ($managed['warnings'] !== ['unmanaged_analytics', 'legacy_metrika_snippet']) throw new RuntimeException('Missing unmanaged loader warning');
 echo "Installation matching passed\n";

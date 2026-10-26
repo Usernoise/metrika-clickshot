@@ -1,184 +1,209 @@
-/**
- * Slide to Accept Cookie Consent — v2
- * Окно согласия на обработку cookie, совмещённое со слайд-капчей:
- * для согласия нужно провести слайдер вправо.
- *
- * Отличия от slide-cookie.js (v1):
- *   1. Динамические стили ставятся через style.setProperty(..., 'important').
- *      В v1 писалось `el.style.prop = 'value !important'` — CSSOM молча
- *      отбрасывает такое присваивание, поэтому анимация-подсказка не гасла
- *      во время драга, возврат слайдера был без transition.
- *   2. Цели Метрики: ID счётчика определяется в т.ч. из URL сниппета
- *      (в т.ч. перехваченного блокировкой), цели копятся в очереди и уходят
- *      только когда счётчику разрешено работать.
- *   3. Pointer Events + setPointerCapture; обработаны pointercancel /
- *      touchcancel / потеря окна — драг больше не «залипает».
- *   4. Ширина трека пересчитывается на resize / orientationchange.
- *   5. document.createElement восстанавливается корректно (без bind-обёртки).
- *   6. Доступность: role="dialog", фокус-ловушка, блокировка фона и скролла,
- *      управление слайдером с клавиатуры, live-region.
- *   7. Гард от двойного подключения, валидация data-policy-url,
- *      настраиваемая область хранения отказа.
- *
- * Подключать синхронно в <head>, ВЫШЕ сниппета Яндекс.Метрики.
- *
- * Атрибуты тега <script>:
- *   data-cookie-param      — имя GET-параметра для условного показа ('always')
- *   data-cookie-key        — ожидаемое значение параметра ('')
- *   data-ym-counter        — ID счётчика Метрики (иначе автоопределение)
- *   data-policy-url        — ссылка на политику (http(s):// или относительная)
- *   data-block-metrika     — 'false' | '0' | 'no' выключает блокировку счётчика
- *   data-accent-color      — акцент (прогресс)
- *   data-dark-color        — тёмный (фон слайдера, заголовок)
- *   data-accent-text-color — цвет иконки на тёмной кнопке
- */
-
+/** Slide Cookie v3. One optional purpose: analytics. No pre-consent Yandex queue. */
 (function () {
     'use strict';
-
-    // ========== ГАРД ОТ ДВОЙНОГО ПОДКЛЮЧЕНИЯ ==========
-    if (window.__slideCookieV2) {
-        return;
-    }
-    window.__slideCookieV2 = true;
-
-    // Уникальный префикс для избежания конфликтов
+    if (window.__slideCookieV3) return;
+    window.__slideCookieV3 = true;
+    const script = document.currentScript;
+    const CONFIG = Object.assign({ACCENT_COLOR:'#C5FF1A', DARK_COLOR:'#0A0A0A', ACCENT_TEXT_COLOR:'#C5FF1A', UTM_PARAM:'always', UTM_KEY:''}, window.__clickShotSlideCookieConfig || {});
+    CONFIG.POLICY_URL = safeUrl(CONFIG.POLICY_URL);
+    CONFIG.STORAGE_KEY = CONFIG.STORAGE_KEY || 'clickshot:cookie-choice';
+    const endpoint = CONFIG.SITE_ID && script && script.src
+        ? new URL('/api/consent.php?site=' + encodeURIComponent(CONFIG.SITE_ID), script.src).href : '';
     const PREFIX = 'cc-' + Date.now() + '-';
+    const INSET = 5, TRACK_HEIGHT = 60, KNOB_SIZE = 50, ACCEPT_RATIO = 0.9;
+    let choice = null, verified = false, sequence = 0, activeBanner = null, settingsLink = null;
+    let sdkStarted = false, expiryTimer = null, pendingRequest = false;
+    const domReady = document.readyState === 'loading'
+        ? new Promise(resolve => document.addEventListener('DOMContentLoaded', resolve, {once:true})) : Promise.resolve();
 
-    // Геометрия слайдера
-    const INSET = 5;          // отступ круга внутри трека
-    const TRACK_HEIGHT = 60;
-    const KNOB_SIZE = TRACK_HEIGHT - INSET * 2;
-    const ACCEPT_RATIO = 0.9; // доля пути, после которой согласие засчитано
-
-    // ========== УТИЛИТЫ ==========
-
-    // Единственный корректный способ задать inline-стиль с !important.
-    // `el.style.prop = 'value !important'` невалиден и молча игнорируется.
-    function setImportant(el, prop, value) {
-        try {
-            el.style.setProperty(prop, value, 'important');
-        } catch (e) {
-            // Экзотические окружения — не роняем виджет
-        }
-    }
-
-    // Отсекаем javascript:/data: и прочие небезопасные схемы в data-policy-url
+    function setImportant(el, prop, value) { el.style.setProperty(prop, value, 'important'); }
     function safeUrl(value) {
-        if (!value) return '';
-        const url = String(value).trim();
-        if (/^(?:https?:\/\/|\/|\.{1,2}\/|#|\?)/i.test(url)) {
-            return url;
-        }
-        return '';
+        if (!value || typeof value !== 'string' || /[\s\\]/.test(value) || value.startsWith('//')) return '';
+        return /^(?:https?:\/\/[^/]+|\/(?!\/)[^?#]+|\.{1,2}\/[^?#]+)/i.test(value) ? value : '';
     }
-
-    // ========== ПОЛУЧЕНИЕ КОНФИГУРАЦИИ ИЗ АТРИБУТОВ СКРИПТА ==========
-    function getConfig() {
-        const injectedConfig = window.__clickShotSlideCookieConfig;
-        if (injectedConfig && typeof injectedConfig === 'object') {
-            return injectedConfig;
-        }
-        const currentScript = document.currentScript ||
-                             document.querySelector('script[src*="slide-cookie-v2"]') ||
-                             document.querySelector('script[src*="slide-cookie"]') ||
-                             document.querySelector('script[data-cookie-param]');
-
-        // Значения по умолчанию
-        const defaults = {
-            UTM_PARAM: 'always',
-            UTM_KEY: '',
-            YM_COUNTER: null,
-            POLICY_URL: '',
-            // По умолчанию блокируем Яндекс.Метрику до получения согласия
-            BLOCK_METRIKA: true,
-            // Основные цвета (фирменные): акцент и тёмный
-            ACCENT_COLOR: '#C5FF1A', // лайм — прогресс, кнопка-галочка
-            DARK_COLOR: '#0A0A0A',   // ink — фон слайдера, заголовок, текст согласия
-            ACCENT_TEXT_COLOR: '#C5FF1A' // цвет иконки/галочки на тёмной кнопке
-            , STORAGE_KEY: 'cookieConsentGiven'
-        };
-
-        if (!currentScript) {
-            return defaults;
-        }
-
-        const attr = function (name) {
-            return currentScript.getAttribute(name);
-        };
-        const isOff = function (value) {
-            return value === 'false' || value === '0' || value === 'no';
-        };
-
-        const ymCounter = attr('data-ym-counter');
-        const blockAttr = attr('data-block-metrika');
-
-        return {
-            UTM_PARAM: attr('data-cookie-param') || defaults.UTM_PARAM,
-            UTM_KEY: attr('data-cookie-key') || defaults.UTM_KEY,
-            YM_COUNTER: ymCounter ? parseInt(ymCounter, 10) || null : null,
-            POLICY_URL: safeUrl(attr('data-policy-url')),
-            BLOCK_METRIKA: blockAttr === null ? defaults.BLOCK_METRIKA : !isOff(blockAttr),
-            ACCENT_COLOR: attr('data-accent-color') || defaults.ACCENT_COLOR,
-            DARK_COLOR: attr('data-dark-color') || defaults.DARK_COLOR,
-            // По умолчанию цвет иконки равен акценту, если явно не задан
-            ACCENT_TEXT_COLOR: attr('data-accent-text-color')
-                || attr('data-accent-color')
-                || defaults.ACCENT_TEXT_COLOR,
-            STORAGE_KEY: attr('data-cookie-storage-key') || defaults.STORAGE_KEY
-        };
-    }
-
-    // ========== КОНФИГУРАЦИЯ ==========
-    const CONFIG = getConfig();
-
-    // ========== ПРОВЕРКА УСЛОВИЙ ПОКАЗА ==========
     function checkActivation() {
-        // По умолчанию (always + пустой ключ) окно показывается всегда
-        if (CONFIG.UTM_PARAM === 'always' && CONFIG.UTM_KEY === '') {
+        return (CONFIG.UTM_PARAM === 'always' && !CONFIG.UTM_KEY)
+            || new URLSearchParams(location.search).get(CONFIG.UTM_PARAM) === CONFIG.UTM_KEY;
+    }
+    function readChoice() {
+        try {
+            const value = JSON.parse(localStorage.getItem(CONFIG.STORAGE_KEY));
+            if (value && value.format === 1 && ['granted','denied','withdrawn'].includes(value.decision)) return value;
+        } catch (_) {}
+        return null;
+    }
+    function current(value) {
+        return value && CONFIG.DOCUMENT && value.version === CONFIG.DOCUMENT.version
+            && value.hash === CONFIG.DOCUMENT.hash && Number.isFinite(value.expires_at) && value.expires_at > Date.now();
+    }
+    function allowed() { return verified && choice && choice.decision === 'granted' && current(choice); }
+    function store(value) {
+        choice = value;
+        try { localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(value)); } catch (_) {}
+        publish();
+    }
+    function publish() {
+        if (settingsLink) settingsLink.textContent = 'Настройки cookie';
+        window.dispatchEvent(new CustomEvent('clickshot:consent', {detail: {decision:choice?.decision || 'unknown', analytics:!!allowed()}}));
+        clearTimeout(expiryTimer);
+        if (allowed()) expiryTimer = setTimeout(checkExpiry, Math.min(choice.expires_at - Date.now(), 2147483647));
+    }
+    function checkExpiry() {
+        if (current(choice)) { publish(); return; }
+        verified = false;
+        const reload = stopAnalytics();
+        publish();
+        if (reload) location.reload();
+        else domReady.then(() => start());
+    }
+    async function request(action, receipt = '', method = 'link') {
+        if (!endpoint) throw new Error('Разрешение аналитики временно недоступно. Можно продолжить без неё.');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 6000);
+        try {
+            const response = await fetch(endpoint, {method:'POST', mode:'cors', credentials:'omit', cache:'no-store',
+                referrerPolicy:'no-referrer', signal:controller.signal, headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({action, receipt, method, version:CONFIG.DOCUMENT?.version, hash:CONFIG.DOCUMENT?.hash})});
+            const data = await response.json();
+            if (!response.ok || !data.ok) throw new Error(data.error || 'Не удалось сохранить выбор. Можно продолжить без аналитики.');
+            return data;
+        } finally { clearTimeout(timeout); }
+    }
+    function trackGoal(name) {
+        // Banner aggregates stay in ClickShot. Nothing is replayed into Yandex.
+        if (window.ClickShotMetrika?.goal) window.ClickShotMetrika.goal(name);
+        else (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(name);
+    }
+    function startAnalytics() {
+        if (!allowed() || sdkStarted || !CONFIG.READY) return;
+        unblockMetrika();
+        sdkStarted = true;
+        // Drop commands queued before opt-in, including legacy init options/goals.
+        if (window.ym && Array.isArray(window.ym.a)) window.ym.a.length = 0;
+        if (typeof window.ym !== 'function') {
+            window.ym = function () { (window.ym.a = window.ym.a || []).push(arguments); };
+            window.ym.l = Date.now();
+        }
+        window.ym(CONFIG.YM_COUNTER, 'init', {webvisor:false, clickmap:false, trackLinks:false,
+            accurateTrackBounce:false, ecommerce:false, trackHash:false, sendTitle:false, disableYtm:true});
+        const tag = document.createElement('script');
+        tag.async = true;
+        tag.dataset.clickshotMetrika = 'true';
+        tag.referrerPolicy = 'no-referrer';
+        tag.src = 'https://mc.yandex.ru/metrika/tag.js?id=' + encodeURIComponent(CONFIG.YM_COUNTER);
+        document.head.appendChild(tag);
+    }
+    function cleanYandexStorage() {
+        // Only accessible first-party values; never claim to delete vendor data.
+        const paths = new Set(['/']);
+        let path = '';
+        for (const part of location.pathname.split('/').filter(Boolean)) { path += '/' + part; paths.add(path); paths.add(path + '/'); }
+        const domains = ['', location.hostname];
+        const labels = location.hostname.split('.');
+        for (let i = 0; i < labels.length - 1; i++) domains.push('.' + labels.slice(i).join('.'));
+        let cookies = '';
+        try { cookies = document.cookie; } catch (_) {}
+        for (const raw of cookies.split(';')) {
+            const name = raw.trim().split('=')[0];
+            if (!/^_ym/.test(name)) continue;
+            for (const cookiePath of paths) for (const domain of domains) {
+                try { document.cookie = name + '=; Max-Age=0; Path=' + cookiePath + (domain ? '; Domain=' + domain : '') + '; SameSite=Lax'; } catch (_) {}
+            }
+        }
+        for (const storage of ['localStorage','sessionStorage']) {
+            try {
+                const target = window[storage];
+                Object.keys(target).filter(key => /^_ym/.test(key)).forEach(key => target.removeItem(key));
+            } catch (_) {}
+        }
+    }
+    function stopAnalytics() {
+        metrikaAllowed = false;
+        const wasStarted = sdkStarted;
+        sdkStarted = false;
+        if (wasStarted) {
+            try { window.ym(CONFIG.YM_COUNTER, 'destruct'); } catch (_) {}
+        }
+        if (window.ym && Array.isArray(window.ym.a)) window.ym.a.length = 0;
+        document.querySelectorAll('script[data-clickshot-metrika]').forEach(el => el.remove());
+        cleanYandexStorage();
+        return wasStarted;
+    }
+    async function grant(method) {
+        if (pendingRequest) return false;
+        if (!CONFIG.READY) throw new Error('Разрешение аналитики временно недоступно. Можно продолжить без неё.');
+        const turn = ++sequence;
+        pendingRequest = true;
+        try {
+            const data = await request('granted', choice?.pending_receipt || choice?.receipt || '', method);
+            if (turn !== sequence) {
+                await request('withdrawn', data.choice.receipt).catch(() => {});
+                return false;
+            }
+            verified = true;
+            store(data.choice);
+            startAnalytics();
             return true;
-        }
-
-        try {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(CONFIG.UTM_PARAM) === CONFIG.UTM_KEY;
-        } catch (e) {
-            return false;
-        }
+        } finally { pendingRequest = false; }
     }
-
-    // ========== РАБОТА С СОСТОЯНИЕМ ==========
-    function isConsentGiven() {
+    async function reject() {
+        ++sequence;
+        const receipt = choice?.pending_receipt || choice?.receipt || '';
+        const action = choice?.decision === 'granted' || choice?.pending_receipt ? 'withdrawn' : 'denied';
+        verified = false;
+        const reload = stopAnalytics();
+        // Refusal takes effect locally even if the evidence service is offline.
+        store({format:1, decision:action, categories:{analytics:false}, version:CONFIG.DOCUMENT?.version,
+            hash:CONFIG.DOCUMENT?.hash, created_at:Date.now(), expires_at:Date.now() + (CONFIG.DOCUMENT?.days || 180) * 86400000,
+            pending_receipt:receipt, pending:true});
+        trackGoal(action === 'withdrawn' ? 'cookie_consent_withdrawn' : 'cookie_consent_denied');
+        closeBanner();
         try {
-            return localStorage.getItem(CONFIG.STORAGE_KEY) === 'true';
-        } catch (e) {
-            // Если localStorage недоступен, считаем что согласие не дано
-            return false;
-        }
+            const data = await request(action, receipt);
+            if (choice?.pending && choice.pending_receipt === receipt) store(data.choice);
+        } catch (_) { /* The persisted pending revocation is retried on next load. */ }
+        if (reload) location.reload();
     }
-
-    function markConsentGiven() {
-        try {
-            localStorage.setItem(CONFIG.STORAGE_KEY, 'true');
-        } catch (e) {
-            // Игнорируем ошибки localStorage
-        }
+    function makeLink(text, fn) {
+        const link = document.createElement('a');
+        link.href = '#clickshot-cookie-settings';
+        link.dataset.clickshotLink = 'true';
+        link.textContent = text;
+        link.style.cssText = 'font:inherit!important;font-size:13px!important;line-height:1.6!important;color:#525252!important;text-decoration:underline!important;text-underline-offset:3px!important;background:none!important;border:0!important;box-shadow:none!important;cursor:pointer!important;opacity:1!important;display:inline-block!important;padding:2px 0!important;';
+        link.addEventListener('click', event => { event.preventDefault(); fn(); });
+        return link;
     }
-
-    // ========== БЛОКИРОВКА ЯНДЕКС.МЕТРИКИ ДО СОГЛАСИЯ ==========
-    // Перехватываем создание <script> и не даём загрузиться счётчику,
-    // пока пользователь не дал согласие. Срабатывает только если этот скрипт
-    // подключён ВЫШЕ сниппета Метрики на странице и сниппет создаёт тег
-    // через document.createElement (так делает штатный сниппет Яндекса).
-    // Разметочный <script src> в HTML и Document.prototype.createElement.call()
-    // этим способом не перехватываются.
+    function closeBanner() {
+        if (!activeBanner || activeBanner.closing) return;
+        activeBanner.closing = true;
+        dismissBanner(activeBanner, activeBanner.teardown);
+    }
+    async function restore() {
+        const turn = sequence;
+        choice = readChoice();
+        if (choice?.pending) {
+            try {
+                const data = await request(choice.decision, choice.pending_receipt || '');
+                if (turn === sequence) store(data.choice);
+            } catch (_) {}
+        } else if (choice?.decision === 'granted' && current(choice)) {
+            try {
+                const data = await request('verify', choice.receipt || '');
+                if (turn === sequence && data.valid) { verified = true; startAnalytics(); }
+            } catch (_) {}
+        }
+        if (turn !== sequence) return;
+        publish();
+        await domReady;
+        if (turn !== sequence) return;
+        if (current(choice) && (choice.decision !== 'granted' || verified)) closeBanner();
+        else if (checkActivation()) start();
+    }
 
     let metrikaBlockInstalled = false;
     let originalCreateElement = null;
-    let createElementWasOwnProp = false;
     let cachedSrcDescriptor = null;
     let srcDescriptorResolved = false;
-    const blockedMetrikaScripts = [];
 
     function isMetrikaSrc(value) {
         if (!value) return false;
@@ -208,11 +233,8 @@
         if (!srcDescriptor || !srcDescriptor.set || !srcDescriptor.get) return;
 
         metrikaBlockInstalled = true;
-        // Сохраняем ИМЕННО ссылку на метод, без bind: иначе при восстановлении
-        // на document навсегда остаётся собственное свойство — связанная функция,
-        // теряющая переданный this.
+        // Preserve the original method and receiver for third-party DOM code.
         originalCreateElement = document.createElement;
-        createElementWasOwnProp = Object.prototype.hasOwnProperty.call(document, 'createElement');
 
         document.createElement = function (tagName, options) {
             const element = originalCreateElement.call(this, tagName, options);
@@ -231,15 +253,7 @@
                             return srcDescriptor.get.call(this);
                         },
                         set(value) {
-                            if (!metrikaAllowed && isMetrikaSrc(value)) {
-                                // Запоминаем намерение загрузить счётчик, но не загружаем
-                                const previous = blockedMetrikaScripts.find(item => item.element === this);
-                                if (previous) previous.src = String(value);
-                                else blockedMetrikaScripts.push({ element: this, src: String(value) });
-                                return;
-                            }
-                            const previous = blockedMetrikaScripts.findIndex(item => item.element === this);
-                            if (previous !== -1) blockedMetrikaScripts.splice(previous, 1);
+                            if (!metrikaAllowed && isMetrikaSrc(value)) return;
                             srcDescriptor.set.call(this, value);
                         }
                     });
@@ -251,193 +265,18 @@
         };
     }
 
-    // Снимаем перехватчик с document.createElement, возвращая исходное состояние
-    function restoreCreateElement() {
-        if (!metrikaBlockInstalled) return;
-        metrikaBlockInstalled = false;
-
-        try {
-            if (createElementWasOwnProp) {
-                document.createElement = originalCreateElement;
-            } else {
-                // Метод был унаследован от Document.prototype — возвращаем как было
-                delete document.createElement;
-                if (document.createElement !== originalCreateElement) {
-                    document.createElement = originalCreateElement;
-                }
-            }
-        } catch (e) {
-            document.createElement = originalCreateElement;
-        }
-    }
-
     function unblockMetrika() {
         metrikaAllowed = true;
-        restoreCreateElement();
-
-        const srcDescriptor = getScriptSrcDescriptor();
-
-        // Дозагружаем отложенные скрипты Метрики.
-        // Пустой <script> без src при вставке в DOM не получает флаг
-        // «already started», поэтому назначение src запускает загрузку.
-        blockedMetrikaScripts.splice(0).forEach(function (item) {
-            try {
-                // Снимаем перехватчик src с конкретного элемента
-                delete item.element.src;
-                if (srcDescriptor && srcDescriptor.set) {
-                    srcDescriptor.set.call(item.element, item.src);
-                } else {
-                    item.element.setAttribute('src', item.src);
-                }
-            } catch (e) {
-                try { item.element.setAttribute('src', item.src); } catch (e2) {}
-            }
-        });
+        // ClickShot initializes its own counter; legacy snippets are not replayed.
     }
 
-    // ========== РАННЯЯ БЛОКИРОВКА МЕТРИКИ ==========
-    // Ставим перехватчик максимально рано — до выполнения сниппета счётчика
-    // (но уже после объявлений выше, чтобы не словить temporal dead zone).
-    // Вся IIFE отрабатывает синхронно до сниппета Метрики, поэтому «ранность»
-    // не теряется от переноса вызова сюда.
-    if (CONFIG.BLOCK_METRIKA && !isConsentGiven()) {
-        installMetrikaBlock();
-    }
-
-    // Разрешение зависит от согласия, а не от успешности установки перехватчика.
-    // UTM определяет показ окна, но не даёт разрешение на стороннюю аналитику.
-    let metrikaAllowed = !CONFIG.BLOCK_METRIKA || isConsentGiven();
-
-    // ========== ЯНДЕКС МЕТРИКА: ЦЕЛИ ==========
-
-    const pendingGoals = [];
-    let counterWaitTimer = null;
-
-    // Достаём ID счётчика из URL вида .../metrika/tag.js?id=12345678
-    function counterIdFromSrc(src) {
-        const match = /[?&]id=(\d+)/.exec(String(src || ''));
-        return match ? parseInt(match[1], 10) : null;
-    }
-
-    // Получение ID счетчика с приоритетом
-    function getMetrikaCounterId() {
-        // Приоритет 1: явно указанный ID в data-атрибуте
-        if (CONFIG.YM_COUNTER) {
-            return CONFIG.YM_COUNTER;
-        }
-
-        // Приоритет 2: URL сниппета — работает раньше всего и даже тогда,
-        // когда сам счётчик заблокирован нами (v1 в этом случае ID не находил
-        // и молча терял все цели)
-        try {
-            for (let i = 0; i < blockedMetrikaScripts.length; i++) {
-                const id = counterIdFromSrc(blockedMetrikaScripts[i].src);
-                if (id) return id;
-            }
-        } catch (e) {}
-
-        try {
-            const scripts = document.getElementsByTagName('script');
-            for (let i = 0; i < scripts.length; i++) {
-                const src = scripts[i].src;
-                if (src && /mc\.yandex\.(ru|com)\/metrika\/tag\.js/i.test(src)) {
-                    const id = counterIdFromSrc(src);
-                    if (id) return id;
-                }
-            }
-        } catch (e) {}
-
-        // Приоритет 3: автоопределение через window.Ya
-        try {
-            if (window.Ya && window.Ya._metrika && window.Ya._metrika.counters) {
-                const counters = window.Ya._metrika.counters();
-                if (counters && counters.length > 0) {
-                    return counters[0].id;
-                }
-            }
-        } catch (e) {
-            // Продолжаем поиск
-        }
-
-        // Приоритет 4: глобальные объекты старых версий счётчика.
-        // Читаем только имена ключей — значения не трогаем, чтобы не
-        // споткнуться о геттеры, бросающие исключение.
-        try {
-            const keys = Object.keys(window);
-            for (let i = 0; i < keys.length; i++) {
-                if (/^yaCounter\d+$/.test(keys[i])) {
-                    const digits = keys[i].match(/\d+/);
-                    if (digits) return parseInt(digits[0], 10);
-                }
-            }
-        } catch (e) {
-            // Счетчик не найден
-        }
-
-        return null;
-    }
-
-    // Ждём, пока станут доступны и функция ym, и ID счётчика.
-    // Проверять только `typeof ym !== 'undefined'` бессмысленно: сниппет
-    // объявляет ym-заглушку сразу, до загрузки tag.js.
-    function waitForCounter(callback, maxAttempts) {
-        const limit = maxAttempts || 40; // 40 × 300мс ≈ 12 секунд
-        let attempts = 0;
-
-        const tryOnce = function () {
-            const counterId = getMetrikaCounterId();
-            if (counterId && typeof window.ym === 'function') {
-                callback(counterId);
-                return true;
-            }
-            return false;
+    let metrikaAllowed = false;
+    installMetrikaBlock();
+    if (typeof window.ym !== 'function') {
+        window.ym = function () {
+            if (metrikaAllowed) (window.ym.a = window.ym.a || []).push(arguments);
         };
-
-        if (tryOnce()) return;
-        if (counterWaitTimer) return;
-
-        counterWaitTimer = setInterval(function () {
-            attempts++;
-            if (tryOnce() || attempts >= limit) {
-                clearInterval(counterWaitTimer);
-                counterWaitTimer = null;
-            }
-        }, 300);
-    }
-
-    function flushGoals() {
-        if (!metrikaAllowed || pendingGoals.length === 0) return;
-
-        waitForCounter(function (counterId) {
-            // ym-заглушка складывает вызовы в очередь и выполнит их после
-            // загрузки tag.js, поэтому ждать саму загрузку не требуется
-            pendingGoals.splice(0).forEach(function (goal) {
-                try {
-                    // This target has already been sent to ClickShot by trackGoal.
-                    // Do not let the generic ym bridge create a duplicate event.
-                    window.__clickShotSuppressYandexGoalBridge = (window.__clickShotSuppressYandexGoalBridge || 0) + 1;
-                    try {
-                        window.ym(counterId, 'reachGoal', goal);
-                    } finally {
-                        window.__clickShotSuppressYandexGoalBridge--;
-                    }
-                } catch (e) {
-                    // Игнорируем ошибки отправки
-                }
-            });
-        });
-    }
-
-    function trackGoal(goalName) {
-        pendingGoals.push(goalName);
-        try {
-            if (window.ClickShotMetrika && typeof window.ClickShotMetrika.goal === 'function') {
-                window.ClickShotMetrika.goal(goalName);
-            } else {
-                (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(goalName);
-            }
-        } catch (e) {}
-        flushGoals();
+        window.ym.l = Date.now();
     }
 
     // ========== СОЗДАНИЕ ОКНА СОГЛАСИЯ ==========
@@ -513,7 +352,9 @@
         container.style.cssText = `
             background: #FFFFFF !important;
             border-radius: 22px !important;
-            padding: 32px !important;
+            padding: 28px !important;
+            max-height: 88vh !important;
+            overflow-y: auto !important;
             box-shadow: 0 32px 64px rgba(10, 10, 10, 0.14) !important;
             max-width: 380px !important;
             width: 100% !important;
@@ -540,43 +381,42 @@
             background: none !important;
         `;
 
-        // Описание. Формулировка v1 («Продолжая пользоваться сайтом, вы даёте
-        // согласие») описывала подразумеваемое согласие и противоречила самой
-        // механике окна, где согласие даётся явным действием.
         const description = document.createElement('p');
         description.id = descId;
-        const policyText = 'Политикой обработки персональных данных';
-        const beforePolicy = 'Мы используем файлы cookie и обрабатываем персональные данные. Проведите слайдер вправо, чтобы дать согласие и подтвердить, что Вы ознакомлены с ';
-        description.style.cssText = `
-            margin: 0 0 24px 0 !important;
-            padding: 0 !important;
-            font-size: 14px !important;
-            font-weight: 400 !important;
-            color: #525252 !important;
-            text-align: center !important;
-            font-family: 'Onest', system-ui, -apple-system, sans-serif !important;
-            line-height: 1.5 !important;
-            border: none !important;
-            background: none !important;
-        `;
-        description.appendChild(document.createTextNode(beforePolicy));
+        description.style.cssText = "margin:0 0 16px!important;font:14px/1.5 system-ui,sans-serif!important;color:#525252!important;text-align:center!important;";
+        description.textContent = CONFIG.READY
+            ? (CONFIG.DOCUMENT?.operator ? CONFIG.DOCUMENT.operator + ' использует Яндекс.Метрику для анализа посещаемости. ' : '')
+                + 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.'
+            : 'Разрешение аналитики временно недоступно. Вы можете продолжить пользоваться сайтом без неё.';
+        const documents = document.createElement('div');
+        documents.style.cssText = 'margin:0 0 18px!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
+        const consentContent = document.createElement('div');
+        consentContent.id = PREFIX + 'document';
+        consentContent.hidden = true;
+        consentContent.tabIndex = 0;
+        consentContent.style.cssText = 'white-space:pre-wrap!important;max-height:220px!important;overflow:auto!important;text-align:left!important;font:12px/1.6 system-ui,sans-serif!important;color:#404040!important;margin-top:12px!important;';
+        consentContent.textContent = CONFIG.DOCUMENT?.text || '';
+        if (CONFIG.READY) {
+            const consentLink = makeLink('Согласие на аналитику', () => {
+                consentContent.hidden = !consentContent.hidden;
+                consentLink.setAttribute('aria-expanded', String(!consentContent.hidden));
+            });
+            consentLink.setAttribute('aria-expanded', 'false');
+            consentLink.setAttribute('aria-controls', consentContent.id);
+            documents.appendChild(consentLink);
+        }
         if (CONFIG.POLICY_URL) {
-            const policyLink = document.createElement('a');
+            if (documents.childNodes.length) documents.appendChild(document.createTextNode(' · '));
+            const policy = makeLink('Политика обработки данных', () => {});
+            // A document link navigates normally; it never confirms policy acceptance.
+            const policyLink = policy.cloneNode(true);
             policyLink.href = CONFIG.POLICY_URL;
             policyLink.target = '_blank';
             policyLink.rel = 'noopener noreferrer';
-            policyLink.textContent = policyText;
-            policyLink.style.cssText = `
-                color: #525252 !important;
-                text-decoration: underline !important;
-                text-underline-offset: 2px !important;
-            `;
-            policyLink.addEventListener('click', function () { trackGoal('cookie_policy_opened'); });
-            description.appendChild(policyLink);
-        } else {
-            description.appendChild(document.createTextNode(policyText));
+            policyLink.addEventListener('click', () => trackGoal('cookie_policy_opened'));
+            documents.appendChild(policyLink);
         }
-        description.appendChild(document.createTextNode('.'));
+        documents.appendChild(consentContent);
 
         // Трек слайдера
         const track = document.createElement('div');
@@ -623,7 +463,7 @@
         slider.setAttribute('aria-valuemax', '100');
         slider.setAttribute('aria-valuenow', '0');
         slider.setAttribute('aria-valuetext', '0 процентов');
-        slider.setAttribute('aria-label', 'Проведите вправо, чтобы принять cookie');
+        slider.setAttribute('aria-label', 'Проведите вправо, чтобы разрешить аналитику');
         slider.setAttribute('aria-describedby', hintId);
         slider.style.cssText = `
             position: absolute !important;
@@ -663,7 +503,8 @@
 
         // Текст внутри трека — декоративный дубль, для скринридера скрыт
         const trackText = document.createElement('div');
-        trackText.textContent = 'Проведите вправо для согласия';
+        trackText.textContent = 'Сдвиньте для согласия';
+        if (!CONFIG.READY) { track.hidden = true; setImportant(track, 'display', 'none'); }
         trackText.setAttribute('aria-hidden', 'true');
         trackText.style.cssText = `
             position: absolute !important;
@@ -706,18 +547,27 @@
         // Собираем контейнер
         container.appendChild(title);
         container.appendChild(description);
+        container.appendChild(documents);
         container.appendChild(track);
         container.appendChild(hint);
         container.appendChild(liveRegion);
+        const refusal = document.createElement('div');
+        refusal.style.cssText = 'margin:16px 0 0!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
+        const rejectLink = makeLink(allowed() ? 'Отозвать согласие' : 'Продолжить без аналитики', () => { reject(); });
+        refusal.appendChild(rejectLink);
+        container.appendChild(refusal);
+        const errorMessage = document.createElement('p');
+        errorMessage.setAttribute('role', 'alert');
+        errorMessage.style.cssText = 'margin:12px 0 0!important;font:13px/1.5 system-ui,sans-serif!important;color:#9f2929!important;text-align:center!important;';
+        container.appendChild(errorMessage);
 
         overlay.appendChild(container);
         document.body.appendChild(overlay);
 
-        // Цель «окно согласия показано». Пока Метрика заблокирована, цель
-        // ждёт в очереди и уйдёт вместе с согласием.
+        // Only anonymous ClickShot banner aggregates; never sent to Yandex.
         trackGoal('cookie_consent_shown');
 
-        return { overlay, container, slider, sliderIcon, progress, track, trackText, style, liveRegion };
+        return { overlay, container, slider, sliderIcon, progress, track, trackText, style, liveRegion, rejectLink, errorMessage };
     }
 
     // ========== ИЗОЛЯЦИЯ ФОНА (a11y) ==========
@@ -799,6 +649,7 @@
                 elements.style.remove();
             }
             unlockBackground();
+            if (activeBanner === elements) activeBanner = null;
         }, 300);
     }
 
@@ -868,37 +719,33 @@
             }
         }
 
-        function accept() {
-            if (accepted) return;
-            accepted = true;
+        async function accept(method = 'slider') {
+            if (accepted || !CONFIG.READY || pendingRequest || elements.closing) return;
             isDragging = false;
-
-            currentX = maxDistance;
-            render();
-
-            sliderIcon.textContent = '✓';
-            setImportant(slider, 'animation', 'none');
-            setImportant(slider, 'cursor', 'default');
-            setImportant(slider, 'background', CONFIG.DARK_COLOR);
-            setImportant(slider, 'color', CONFIG.ACCENT_TEXT_COLOR);
-            setImportant(track, 'box-shadow', 'inset 0 0 0 1.5px ' + CONFIG.DARK_COLOR);
-            trackText.textContent = 'Согласие принято';
-            setImportant(trackText, 'color', CONFIG.DARK_COLOR);
-            setImportant(trackText, 'opacity', '1');
             slider.setAttribute('aria-disabled', 'true');
-            liveRegion.textContent = 'Согласие принято';
-
-            markConsentGiven();
-
-            // Снимаем блокировку и дозагружаем счётчик Яндекс.Метрики
-            unblockMetrika();
-            metrikaAllowed = true;
-
-            trackGoal('cookie_consent_accepted');
-
-            setTimeout(function () {
-                dismissBanner(elements, teardownListeners);
-            }, 500);
+            elements.errorMessage.textContent = '';
+            trackText.textContent = 'Сохраняем выбор…';
+            try {
+                if (!await grant(method)) return;
+                if (elements.closing) return;
+                accepted = true;
+                currentX = maxDistance;
+                render();
+                sliderIcon.textContent = '✓';
+                setImportant(slider, 'animation', 'none');
+                trackText.textContent = 'Согласие принято';
+                liveRegion.textContent = 'Согласие принято';
+                trackGoal('cookie_consent_accepted');
+                closeBanner();
+            } catch (error) {
+                elements.errorMessage.textContent = error.message || 'Не удалось сохранить согласие. Можно продолжить без аналитики.';
+                resetPosition();
+            } finally {
+                if (!accepted) {
+                    slider.setAttribute('aria-disabled', 'false');
+                    trackText.textContent = 'Сдвиньте для согласия';
+                }
+            }
         }
 
         // --- Указатель ------------------------------------------------------
@@ -921,7 +768,7 @@
         }
 
         function onStart(e) {
-            if (accepted || isDragging) return;
+            if (accepted || isDragging || pendingRequest || !CONFIG.READY) return;
 
             if (!startedTracked) {
                 startedTracked = true;
@@ -1038,12 +885,12 @@
             currentX = Math.max(0, Math.min(currentX + maxDistance * deltaRatio, maxDistance));
             render();
             if (currentX >= maxDistance * ACCEPT_RATIO) {
-                accept();
+                accept('keyboard');
             }
         }
 
         function onSliderKeydown(e) {
-            if (accepted) return;
+            if (accepted || pendingRequest) return;
             switch (e.key) {
                 case 'ArrowRight':
                 case 'ArrowUp':
@@ -1068,7 +915,7 @@
                 case ' ':
                 case 'Spacebar':
                     e.preventDefault();
-                    accept();
+                    accept('keyboard');
                     break;
                 default:
                     break;
@@ -1131,30 +978,49 @@
             try { resizeObserver.observe(track); } catch (e) { resizeObserver = null; }
         }
 
+        elements.teardown = teardownListeners;
         // Фокус внутрь модалки. Escape намеренно не обрабатываем:
         // случайное нажатие не должно трактоваться ни как согласие, ни как отказ.
-        try { slider.focus({ preventScroll: true }); } catch (e) { try { slider.focus(); } catch (e2) {} }
+        const firstControl = CONFIG.READY ? slider : elements.rejectLink;
+        try { firstControl.focus({ preventScroll: true }); } catch (_) { firstControl.focus(); }
     }
 
-    // ========== ИНИЦИАЛИЗАЦИЯ ==========
     function start() {
+        if (activeBanner) return;
         const elements = createBanner();
+        activeBanner = elements;
         lockBackground(elements.overlay);
         initSlider(elements);
     }
-
-    function init() {
-        if (!checkActivation()) return;
-
-        // Согласие уже дано — окно не показываем
-        if (isConsentGiven()) return;
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', start);
-        } else {
-            start();
-        }
-    }
-
-    init();
+    window.ClickShotConsent = {
+        open: () => domReady.then(start),
+        withdraw: reject,
+        getState: () => ({decision:choice?.decision || 'unknown', analytics:!!allowed()})
+    };
+    domReady.then(() => {
+        const style = document.createElement('style');
+        style.textContent = '[data-clickshot-link]:focus-visible{outline:2px solid #525252!important;outline-offset:4px!important;}';
+        document.head.appendChild(style);
+        settingsLink = makeLink('Настройки cookie', start);
+        settingsLink.dataset.clickshotSettings = 'true';
+        settingsLink.style.cssText += 'position:fixed!important;bottom:12px!important;left:16px!important;z-index:2147483645!important;background:#fff!important;padding:2px 4px!important;font-family:system-ui,sans-serif!important;';
+        document.body.appendChild(settingsLink);
+    });
+    window.addEventListener('storage', event => {
+        if (event.key !== CONFIG.STORAGE_KEY && event.key !== null) return;
+        ++sequence;
+        verified = false;
+        const reload = stopAnalytics();
+        choice = readChoice();
+        publish();
+        if (reload) location.reload();
+        else restore();
+    });
+    window.addEventListener('pagehide', event => {
+        if (event.persisted) { verified = false; stopAnalytics(); }
+    });
+    window.addEventListener('pageshow', event => {
+        if (event.persisted) { ++sequence; restore(); }
+    });
+    restore();
 })();

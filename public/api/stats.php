@@ -269,6 +269,41 @@ if ($sourceFilter) {
 }
 $pageviews = array_sum(array_column($dailyMap, 'pageviews'));
 $visits = array_sum(array_column($dailyMap, 'visits'));
+
+// Предыдущий период той же длины — база для дельт KPI в панели.
+// Отказы и UTM не хранятся по источникам, поэтому при фильтре по источникам
+// предыдущий период остаётся неизвестным, а не равным нулю.
+$previous = ['pageviews' => 0, 'visits' => 0, 'bounces' => null, 'bounce_rate' => null, 'depth' => 0];
+if (!$sourceFilter) {
+    $prevTo = $fromDate->modify('-1 day');
+    $prevFrom = $prevTo->modify('-' . ($days - 1) . ' days');
+    $prevStmt = $pdo->prepare(
+        'SELECT COALESCE(SUM(pageviews),0) AS pageviews,
+                COALESCE(SUM(visits),0) AS visits,
+                COALESCE(SUM(bounces),0) AS bounces
+         FROM daily_stats
+         WHERE site_id = :site AND stat_date >= :start AND stat_date <= :end'
+    );
+    $prevStmt->execute([
+        ':site' => $siteId,
+        ':start' => $prevFrom->format('Y-m-d'),
+        ':end' => $prevTo->format('Y-m-d'),
+    ]);
+    $prevRow = $prevStmt->fetch() ?: [];
+    $prevVisits = (int)($prevRow['visits'] ?? 0);
+    $prevPageviews = (int)($prevRow['pageviews'] ?? 0);
+    $prevBounces = (int)($prevRow['bounces'] ?? 0);
+    // Пустой предыдущий период — это «нет данных», а не «рост с нуля».
+    $hasPrevious = $prevVisits > 0 || $prevPageviews > 0;
+    $previous = [
+        'pageviews' => $hasPrevious ? $prevPageviews : null,
+        'visits' => $hasPrevious ? $prevVisits : null,
+        'bounces' => $hasPrevious ? $prevBounces : null,
+        'bounce_rate' => $hasPrevious && $prevVisits > 0 ? round($prevBounces / $prevVisits * 100, 1) : null,
+        'depth' => $hasPrevious && $prevVisits > 0 ? round($prevPageviews / $prevVisits, 2) : null,
+    ];
+}
+
 // Bounces and UTM campaigns are not stored per source, so a source-filtered
 // report has no value for them rather than a misleading 0.
 $bounces = $sourceFilter ? null : array_sum(array_column($dailyMap, 'bounces'));
@@ -315,6 +350,7 @@ respond_json(200, [
         'bounces' => $bounces,
         'bounce_rate' => $bounceRate,
     ],
+    'previous' => $previous,
     'daily' => $chartData,
     'pages' => array_map(fn($r) => [
         'path' => $r['path'],

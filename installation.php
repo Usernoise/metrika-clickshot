@@ -16,6 +16,8 @@ function inspect_installation(string $html, string $siteId, string $collectorHos
     $warnings = [];
     foreach ($dom->getElementsByTagName('script') as $script) {
         $src = $script->getAttribute('src');
+        if ($src === '' && preg_match('~mc\.(?:yandex\.(?:ru|com)|webvisor\.(?:org|com))/~i', $script->textContent)) $warnings[] = 'legacy_metrika_snippet';
+        if (preg_match('~(?:googletagmanager|google-analytics)\.com|top-fwz1\.mail\.ru~i', $src)) $warnings[] = 'unmanaged_analytics';
         $url = parse_url(str_starts_with($src, '//') ? 'https:' . $src : $src);
         if (!$url) continue;
         $host = strtolower($url['host'] ?? '');

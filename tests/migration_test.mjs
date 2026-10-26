@@ -24,10 +24,17 @@ echo json_encode(['sites'=>count(all_sites()),'collection'=>site_by_id('legacy')
 assert.equal(data.sites,1);
 assert.deepEqual(data.collection,{pageviews:true,pages:false,referrers:true,visits:false,tech:true});
 assert.deepEqual(data.totals,{pageviews:42,visits:7});
+// Model the immediately previous v2 schema: same aggregates, no consent tables.
+execFileSync('php',['-r',`require ${JSON.stringify(join(root,'lib.php'))};
+foreach (['site_consent_settings','consent_documents','consent_receipts','consent_budget'] as $table) db()->exec('DROP TABLE '.$table);
+db()->exec('PRAGMA user_version=2');`],{env});
+execFileSync('php',[join(root,'bin/database.php'),'migrate'],{env});
+const upgraded=JSON.parse(execFileSync('php',['-r',`require ${JSON.stringify(join(root,'lib.php'))};echo json_encode(db()->query('SELECT pageviews,visits FROM daily_stats')->fetch());`],{env,encoding:'utf8'}));
+assert.deepEqual(upgraded,{pageviews:42,visits:7},'v2 to v3 must preserve existing statistics');
 const integrity=execFileSync('php',['-r',`require ${JSON.stringify(join(root,'lib.php'))};
 try {db()->exec("INSERT INTO source_event_daily_stats VALUES('missing','2026-01-01','source','goal',1,1)");exit(2);} catch(PDOException $e) {}
 db()->exec("DELETE FROM sites WHERE id='legacy'");
 foreach(site_data_tables() as $table) if(db()->query("SELECT COUNT(*) FROM ".$table)->fetchColumn()!=0) exit(3);
 echo 'ok';`],{env,encoding:'utf8'});
 assert.equal(integrity,'ok');
-console.log('Legacy migration, concurrent migration, preserved aggregates and cascading deletion passed');
+console.log('Legacy/v2 migration, concurrent migration, preserved aggregates and cascading deletion passed');

@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="neu">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ClickShot Metrika</title>
+<script>
+(function(){
+  try{
+    var stored = localStorage.getItem('clickshot:admin-theme');
+    if(stored === 'classic' || stored === 'neu') document.documentElement.setAttribute('data-theme', stored);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="/admin-theme-neu.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600&display=swap');
 :root{--ink:#0a0a0a;--muted:#737373;--line:#e5e5e5;--soft:#f5f5f5;--lime:#c5ff1a;--lime-soft:#f1ffcc;--danger:#b42318;--font:'Onest',sans-serif;--mono:'JetBrains Mono',monospace;--display:'Geologica',sans-serif}*{box-sizing:border-box}body.fc-app{margin:0;background:#fff;color:var(--ink);font:13px/1.5 var(--font)}button,input,select{font:inherit}button{cursor:pointer}.wrap{max-width:1280px;margin:auto;padding:0 32px}.app-nav{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font:600 15px var(--display)}.logo{width:30px;height:30px;background:var(--ink);color:var(--lime);display:grid;place-items:center;border-radius:7px;font:500 10px var(--mono);letter-spacing:-.1em}.nav-tag,.eyebrow,.label{font:500 10px var(--mono);letter-spacing:.09em;text-transform:uppercase}.nav-tag{color:var(--muted)}header{padding:48px 0 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;background-image:radial-gradient(#e5e5e5 .75px,transparent .75px);background-size:14px 14px;background-position:0 14px}h1,h2{font-family:var(--display);letter-spacing:-.035em}h1{font-size:38px;line-height:1;margin:8px 0 10px}.eyebrow{display:flex;align-items:center;gap:8px;color:#404040}.eyebrow:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.35)}.muted{color:var(--muted);font-size:13px}.controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}.fc-input,select,input{border:1px solid #d4d4d4;border-radius:6px;background:#fff;padding:9px 10px;outline:none;min-height:36px}.fc-input:focus,select:focus,input:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.28)}#site{min-width:190px;font-weight:600}.fc-btn{border-radius:6px;padding:9px 12px;border:1px solid transparent;font-weight:500;min-height:36px;transition:.18s ease}.fc-btn:hover{transform:translateY(-1px)}.fc-btn-primary{background:var(--lime);border-color:var(--lime);color:#181b25}.fc-btn-outline{background:#fff;border-color:var(--line);color:#404040}.btn-delete{color:var(--danger);border-color:#f0c7c3;background:#fff}.main{padding:0 0 64px}.error{display:none;margin:0 0 16px;padding:11px 13px;border:1px solid #f0c7c3;border-radius:8px;background:#fff3f2;color:var(--danger);font:12px var(--mono)}.cards{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}.card{padding:17px 18px;border-right:1px solid var(--line)}.card:last-child{border:0}.label{color:#737373}.value{font:600 30px/1 var(--display);margin-top:10px;letter-spacing:-.04em}.panel{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:16px;min-width:0}.panel-header{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:1px solid var(--line);gap:12px}.panel-header h2,.panel h2{font-size:15px;margin:0}.panel-header .muted{font-size:11px}.chart-panel{padding-bottom:14px}.chart{margin:20px 16px 0;height:198px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #d4d4d4}.bar-wrap{flex:1;min-width:3px;height:100%;display:flex;align-items:flex-end;position:relative}.bar{width:100%;min-height:2px;background:#181b25;border-radius:3px 3px 0 0;transition:background .15s}.bar-wrap:hover .bar{background:var(--lime)}.bar-wrap:hover:after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);padding:5px 7px;background:#181b25;color:#fff;border-radius:4px;white-space:nowrap;font:10px var(--mono);z-index:3}.btn-group{border:0;border-bottom:2px solid transparent;background:transparent;color:#737373;padding:7px 8px;font:10px var(--mono);text-transform:uppercase}.btn-group.active{color:#0a0a0a;border-color:var(--lime)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid .panel{margin:0}.table-panel{overflow:hidden}.table-panel>h2{padding:14px 14px 6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 14px;border-bottom:1px solid #ededed;text-align:left}tbody tr:last-child td{border-bottom:0}th{font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#737373}th.num,td.num{text-align:right}.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.collection-panel{padding:16px}.settings-head{padding-bottom:12px;border-bottom:1px dashed var(--line);margin-bottom:12px}.collection-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.collection-item{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:8px;cursor:pointer;background:#fff;transition:border-color .15s}.collection-item:hover{border-color:#a3a3a3}.collection-item input{min-height:auto;width:15px;height:15px;margin:2px 0 0;accent-color:#a7dc00}.collection-item strong{display:block;font-size:12px}.collection-item span span{display:block;margin-top:3px;color:#737373;font-size:10px;line-height:1.35}.collection-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.collection-status{font-size:11px;color:var(--muted)}.slide-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;padding:16px}.cookie-config{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cookie-config label{display:grid;gap:4px;font:10px var(--mono);text-transform:uppercase;color:#525252}.cookie-config input{width:100%;padding:7px 8px;min-height:32px}.cookie-config .collection-item{font:12px var(--font);text-transform:none}.cookie-config[hidden]{display:none!important}.cookie-note{background:#fafafa;border-left:3px solid var(--lime);padding:10px 11px;color:#525252;font-size:11px}.site-form{display:grid;grid-template-columns:1fr 2fr auto;gap:8px;padding:14px}.snippet-wrap{padding:14px}.snippet{padding:13px;background:#181b25;color:#efffc7;border-radius:7px;font:11px/1.55 var(--mono);word-break:break-all}.snippet-actions{display:flex;justify-content:flex-end;margin-top:9px}.btn-copy{background:var(--lime);border:0;border-radius:6px;padding:8px 11px;color:#181b25;font-weight:500}.btn-copy.copied{background:#c5ff1a}.section-title{display:flex;justify-content:space-between;align-items:center;margin:32px 0 12px}.section-title h2{font-size:18px;margin:0}.section-title span{font:10px var(--mono);color:var(--muted);text-transform:uppercase}.add-panel{margin-top:32px}.add-panel h2,.snippet-panel h2{padding:14px 14px 0}#custom-range{gap:5px;align-items:center}.footnote{text-align:center;color:#737373;font:10px var(--mono);margin-top:24px}[hidden]{display:none!important}@media(max-width:980px){.collection-grid{grid-template-columns:repeat(2,1fr)}.slide-grid{grid-template-columns:1fr}.tech-grid{grid-template-columns:1fr}.wrap{padding:0 20px}}@media(max-width:680px){header{padding-top:34px;align-items:flex-start;flex-direction:column}h1{font-size:31px}.cards,.grid,.site-form{grid-template-columns:1fr}.card{border-right:0;border-bottom:1px solid var(--line)}.card:last-child{border-bottom:0}.controls{justify-content:flex-start}.collection-grid{grid-template-columns:1fr}.collection-footer{align-items:flex-start;flex-direction:column}.cookie-config{grid-template-columns:1fr}.wrap{padding:0 14px}.app-nav{height:56px}}
@@ -25,7 +34,7 @@ header h1{margin-top:0}
 
 :root { --ink:#10100f; --ink-700:#484842; --muted:#72726b; --line:#e5e5df; --soft:#f6f6f2; --canvas:#fbfbf8; --lime:#c5ff1a; --lime-soft:#f2ffcf; --danger:#b42318; --danger-soft:#fff1ef; --font:'Onest',sans-serif; --mono:'JetBrains Mono',monospace; --display:'Geologica',sans-serif; --shadow:0 1px 2px rgba(16,16,15,.03),0 12px 30px rgba(16,16,15,.045); --radius:14px; }
 * { box-sizing:border-box; } [hidden] { display:none!important; } html { background:var(--canvas); } body.fc-app { min-width:320px; background:var(--canvas); color:var(--ink); font:13px/1.5 var(--font); -webkit-font-smoothing:antialiased; }
-button,input,select { font:inherit; } button { cursor:pointer; } button:disabled { cursor:wait; opacity:.58; } button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible { outline:3px solid rgba(197,255,26,.58); outline-offset:2px; }
+button,input,select,textarea { font:inherit; } button { cursor:pointer; } button:disabled { cursor:wait; opacity:.58; } button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible { outline:3px solid rgba(197,255,26,.58); outline-offset:2px; }
 .wrap { max-width:1320px; padding:0 36px; } .app-nav { height:68px; border:0; border-bottom:1px solid var(--line); } .brand { gap:11px; font:600 15px var(--display); letter-spacing:-.025em; } .logo { width:32px; height:32px; border-radius:10px; background:var(--ink); color:var(--lime); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); } .nav-tag { padding:5px 9px; border:1px solid var(--line); border-radius:999px; color:var(--ink-700); font-size:9px; letter-spacing:.08em; }
 header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:flex-end; background:linear-gradient(90deg,rgba(197,255,26,.1),transparent 42%), radial-gradient(var(--line) .7px, transparent .7px); background-size:auto,15px 15px; background-position:0 0,0 5px; border-bottom:1px solid var(--line); } header>div { position:relative; } h1,h2 { color:var(--ink); } h1 { max-width:600px; margin:8px 0 9px; font-size:clamp(32px,4vw,46px); font-weight:600; } .eyebrow { color:var(--ink-700); } .muted { color:var(--muted); } header .muted { max-width:570px; font-size:14px; }
 .controls { gap:8px; max-width:700px; } select,input { min-height:40px; padding:9px 11px; border:1px solid #d9d9d2; border-radius:8px; color:var(--ink); background:#fff; transition:border-color .16s ease,box-shadow .16s ease; } select:hover,input:hover { border-color:#aaa9a0; } select:focus,input:focus { border-color:#9ecb0e; box-shadow:0 0 0 3px rgba(197,255,26,.26); } #site { min-width:205px; } .fc-btn,.btn-copy { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:9px 13px; border-radius:8px; font-weight:600; transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease; } .fc-btn:hover,.btn-copy:hover { transform:translateY(-1px); box-shadow:0 4px 10px rgba(16,16,15,.09); } .fc-btn-primary,.btn-copy { background:var(--lime); border-color:var(--lime); color:var(--ink); } .fc-btn-outline { border-color:#d9d9d2; color:var(--ink-700); } .btn-delete { border-color:#f1c5c0; color:var(--danger); background:#fff; }
@@ -36,7 +45,7 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 .source-filter summary { height:32px; border-color:#deded8; border-radius:8px; } .source-options { border-radius:10px; border-color:#deded8; box-shadow:0 16px 32px rgba(16,16,15,.12); } .source-option { border-radius:5px; } .source-option:hover { background:var(--lime-soft); }
 .grid { gap:18px; } .grid .panel { margin:0; } .tech-grid { gap:18px; margin-top:18px; } .table-panel { min-width:0; } .table-panel>h2 { padding:17px 18px 9px; } table { font-size:12px; } th,td { padding:10px 18px; border-color:#efefea; } tbody tr { transition:background .15s ease; } tbody tr:hover { background:#fbfdf2; } th { color:var(--muted); }
 .section-title { margin:44px 0 14px; } .section-title h2 { font-size:22px; } .section-title span { padding:4px 7px; border-radius:5px; background:var(--lime-soft); color:var(--ink-700); } .collection-panel { padding:20px; } .settings-head { display:flex; justify-content:space-between; align-items:baseline; gap:18px; padding-bottom:15px; margin-bottom:15px; } .collection-grid { grid-template-columns:repeat(5,1fr); gap:10px; } .collection-item { min-height:116px; padding:13px; border-radius:10px; border-color:#deded8; transition:border-color .16s ease,background .16s ease,transform .16s ease; } .collection-item:hover { border-color:#aacd35; background:#fcfff4; transform:translateY(-1px); } .collection-item strong { font-size:12px; line-height:1.35; } .collection-item span span { margin-top:5px; line-height:1.45; } .collection-footer { padding-top:3px; } .collection-status { font-size:11px; }
-#slide-cookie-panel { margin-top:18px; } .slide-grid { grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr); padding:20px; gap:20px; } .slide-grid .collection-item { min-height:0; } .cookie-note { margin-top:10px; border-radius:0 8px 8px 0; background:#fbfbf8; } .cookie-config { grid-template-columns:repeat(3,1fr); padding:0 20px 2px; gap:12px; } .cookie-config label { gap:6px; } .cookie-config input,.cookie-config select { width:100%; } .cookie-config .collection-item { min-height:82px; } .sc-preview { margin-top:14px; border-radius:11px; } .sc-preview-stage { min-height:350px; background:rgba(16,16,15,.68); } .sc-preview-dialog { border-radius:18px; } .sc-preview-track { height:56px; } .sc-preview-progress,.sc-preview-knob { top:5px; width:46px; height:46px; } .sc-preview-track-text { padding-left:40px; font-size:13px; }
+#slide-cookie-panel { margin-top:18px; } .slide-grid { grid-template-columns:minmax(0,1.05fr) minmax(380px,.95fr); padding:20px; gap:20px; } .slide-grid .collection-item { min-height:0; } .cookie-note { margin-top:10px; border-radius:0 8px 8px 0; background:#fbfbf8; } .cookie-config { grid-template-columns:repeat(3,1fr); padding:0 20px 2px; gap:12px; } .cookie-config label { gap:6px; } .cookie-config input,.cookie-config select { width:100%; } .cookie-config textarea { width:100%; min-height:100px; resize:vertical; box-sizing:border-box; padding:10px 12px; border:1px solid var(--line); border-radius:8px; color:var(--ink); background:#fff; } .cookie-config .collection-item { min-height:82px; } .sc-preview { margin-top:14px; border-radius:11px; } .sc-preview-stage { min-height:350px; background:rgba(16,16,15,.68); } .sc-preview-dialog { border-radius:18px; } .sc-preview-track { height:56px; } .sc-preview-progress,.sc-preview-knob { top:5px; width:46px; height:46px; } .sc-preview-track-text { padding-left:40px; font-size:13px; }
 .snippet-panel { margin-top:18px; } .snippet-panel h2 { padding:17px 18px 0; } .snippet-wrap { padding:14px 18px 18px; } .snippet { padding:16px; border-radius:10px; background:#171716; color:#e7ff9a; } .snippet-actions { margin-top:12px; } .footnote { margin-top:30px; }
 .site-modal { background:rgba(16,16,15,.55); } .site-modal-card { padding:26px; border-radius:16px; } .site-modal-close { width:32px; height:32px; border-radius:8px; } .modal-field { gap:7px; margin:15px 0; } .modal-field input { width:100%; } .site-modal-actions { margin-top:24px; }
 @media (max-width:1100px) { .collection-grid { grid-template-columns:repeat(3,1fr); } .cookie-config { grid-template-columns:repeat(2,1fr); } .slide-grid { grid-template-columns:1fr; } }
@@ -44,12 +53,28 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 @media (max-width:640px) { .wrap { padding:0 14px; } .app-nav { height:60px; } .nav-tag { display:none; } header { margin:0 -14px; padding:30px 14px 24px; } h1 { font-size:34px; } header .muted { font-size:13px; } .controls { display:grid; grid-template-columns:1fr 1fr; width:100%; } #site,.controls .fc-btn { width:100%; min-width:0; } #site,.controls #days { grid-column:span 1; } #custom-range { grid-column:1 / -1; } .controls #add-site-open { grid-column:1 / -1; } .cards,.grid { grid-template-columns:1fr; } .cards { gap:1px; } .card,.card:first-child,.card:last-child { min-height:auto; border-radius:0; } .card:first-child { border-radius:13px 13px 0 0; } .card:last-child { border-radius:0 0 13px 13px; } .panel-header { align-items:flex-start; flex-direction:column; } .chart-controls { justify-content:flex-start; } .chart-controls>div:last-child { margin-left:0; } .chart { height:190px; margin:18px 14px 0; } th,td { padding:9px 12px; } th:first-child,td:first-child { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .section-title { align-items:flex-start; flex-direction:column; gap:6px; margin-top:34px; } .settings-head { display:block; } .settings-head .muted { margin-top:5px; } .collection-panel { padding:14px; } .collection-grid,.cookie-config { grid-template-columns:1fr; } .collection-item { min-height:0; } .collection-footer,.snippet-actions { align-items:stretch; flex-direction:column; } .snippet-status { margin-right:0; } .slide-grid { padding:14px; } .cookie-config { padding:0 14px; } .sc-preview-stage { min-height:300px; padding:14px; } .sc-preview-dialog { padding:22px 16px; } .sc-preview-dialog h3 { font-size:19px; } .sc-preview-dialog p { margin-bottom:16px; font-size:12px; } .site-modal { padding:14px; } .site-modal-card { padding:20px; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition-duration:.01ms!important; animation-duration:.01ms!important; } }
 </style>
+<script src="/admin-theme-neu.js" defer></script>
 </head>
 <body class="fc-app">
+<aside class="rail" aria-label="Разделы панели">
+  <div class="rail-brand"><b>ClickShot</b><span>Metrika</span></div>
+  <nav class="rail-nav">
+    <button class="rail-item is-active" type="button" data-neu-tab="stats"><svg class="rail-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 19.5h17"></path><path d="M5 16.5l4.5-5.5 3.5 3.5L19 6.5"></path></svg>Статистика</button>
+    <button class="rail-item" type="button" data-neu-tab="settings"><svg class="rail-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M4 12h16"></path><path d="M4 17h16"></path><circle cx="9" cy="7" r="2.1"></circle><circle cx="15" cy="12" r="2.1"></circle><circle cx="8" cy="17" r="2.1"></circle></svg>Настройки счётчика</button>
+    <button class="rail-item" type="button" data-neu-tab="cookie"><svg class="rail-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2a8.8 8.8 0 1 0 8.8 8.8 3.6 3.6 0 0 1-4.6-4.6 3.6 3.6 0 0 1-4.2-4.2Z"></path><circle cx="9.2" cy="10.4" r="1"></circle><circle cx="13.6" cy="15.2" r="1"></circle><circle cx="8" cy="15.4" r="1"></circle></svg>Slide Cookie</button>
+  </nav>
+  <div class="rail-foot">
+    <button class="rail-theme" type="button" data-theme-toggle><svg class="rail-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9h12l-3.2-3.2"></path><path d="M19.5 15h-12l3.2 3.2"></path></svg><span data-theme-label>Классическая тема</span></button>
+  </div>
+</aside>
 <div class="wrap">
-  <nav class="app-nav"><div class="brand"><div class="logo">CS</div>ClickShot <span class="muted">/ Metrika</span></div><span class="nav-tag">privacy-first analytics</span></nav>
+  <nav class="app-nav"><div class="brand"><div class="logo">CS</div>ClickShot <span class="muted">/ Metrika</span></div><div class="nav-right"><span class="nav-tag">privacy-first analytics</span><button class="theme-toggle" type="button" data-theme-toggle><span data-theme-label>Неоморфная тема</span></button></div></nav>
   <header>
-    <div><h1>Статистика сайта</h1><div class="muted">Агрегированные данные о трафике — без пользовательских идентификаторов.</div></div>
+    <div class="neu-head">
+      <h1 id="neu-title">Статистика сайта</h1>
+      <span class="neu-period" id="neu-period"></span>
+      <div class="muted">Агрегированные данные о трафике — без пользовательских идентификаторов.</div>
+    </div>
     <div class="controls">
     <select id="site"></select>
     <select id="days">
@@ -66,8 +91,8 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
       <input type="date" id="date-to" title="По">
     </div>
     <button id="add-site-open" class="fc-btn fc-btn-primary">+ Добавить сайт</button>
-    <button id="reload" class="fc-btn fc-btn-outline">Обновить</button>
-    <button id="export-csv" class="fc-btn fc-btn-outline" title="Скачать отчёт в формате CSV">Экспорт CSV</button>
+    <button id="reload" class="fc-btn fc-btn-outline" title="Обновить" aria-label="Обновить"><svg class="neu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9"></path><path d="M20 4.2V10h-5.8"></path></svg><span class="neu-btn-text">Обновить</span></button>
+    <button id="export-csv" class="fc-btn fc-btn-outline" title="Скачать отчёт в формате CSV" aria-label="Экспорт CSV"><svg class="neu-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11"></path><path d="M8 11.2l4 4 4-4"></path><path d="M5 19.5h14"></path></svg><span class="neu-btn-text">Экспорт CSV</span></button>
   </div>
 </header>
 
@@ -77,14 +102,63 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 <div class="app-tab-panel" data-tab-panel="stats" role="tabpanel">
 
 <section class="cards" id="metrics-cards" aria-label="Ключевые метрики">
-  <div class="card" id="pageviews-card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div></div>
-  <div class="card" id="visits-card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div></div>
-  <div class="card" id="bounce-card"><div class="label">Отказы</div><div class="value" id="bounce-rate">0%</div></div>
-  <div class="card" id="depth-card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div></div>
+  <div class="card" id="pageviews-card"><div class="label">Просмотры</div><div class="value" id="pageviews">0</div><div class="neu-kpi-delta" id="pageviews-delta">—</div></div>
+  <div class="card" id="visits-card"><div class="label">Приблизительные визиты</div><div class="value" id="visits">0</div><div class="neu-kpi-delta" id="visits-delta">—</div></div>
+  <div class="card" id="bounce-card"><div class="label">Отказы</div><div class="value" id="bounce-rate">0%</div><div class="neu-kpi-delta" id="bounce-delta">—</div></div>
+  <div class="card" id="depth-card"><div class="label">Глубина просмотра</div><div class="value" id="depth">0</div><div class="neu-kpi-delta" id="depth-delta">—</div></div>
 </section>
 
 <section class="panel chart-panel" id="chart-panel">
   <div class="panel-header"><h2>Динамика</h2><div class="chart-controls"><details class="source-filter" id="source-filter"><summary id="source-filter-label">Источники: все</summary><div class="source-options"><input id="source-filter-search" type="search" placeholder="Найти источник" aria-label="Найти источник"><div class="source-option-list" id="source-options"></div><div class="source-filter-actions"><button type="button" id="source-filter-all">Все</button><button type="button" id="source-filter-reset">Сбросить</button><button type="button" id="source-filter-apply">Применить</button></div></div></details><div class="metric-switch" role="tablist" aria-label="Метрика графика"><button class="metric-tab active" data-metric="visits" role="tab" aria-selected="true">Визиты</button><button class="metric-tab" data-metric="pageviews" role="tab" aria-selected="false">Просмотры</button></div><div><button class="btn-group active" data-group="day">Дни</button><button class="btn-group" data-group="week">Недели</button><button class="btn-group" data-group="month">Месяцы</button></div></div></div><div class="chart" id="chart"></div>
+<div class="neu-chart">
+  <div class="neu-chart-box">
+    <svg id="neu-chart-svg" viewBox="0 0 600 220" preserveAspectRatio="none" role="img" aria-label="Динамика визитов и просмотров">
+      <defs>
+        <linearGradient id="neuGradA" x1="0" y1="0" x2="0" y2="1"><stop class="neu-grad-a" offset="0"></stop><stop class="neu-grad-a" offset="1"></stop></linearGradient>
+        <linearGradient id="neuGradB" x1="0" y1="0" x2="0" y2="1"><stop class="neu-grad-b" offset="0"></stop><stop class="neu-grad-b" offset="1"></stop></linearGradient>
+      </defs>
+      <g class="neu-grid" stroke-width="1">
+        <line x1="0" y1="55" x2="600" y2="55"></line><line x1="0" y1="110" x2="600" y2="110"></line><line x1="0" y1="165" x2="600" y2="165"></line><line x1="0" y1="219" x2="600" y2="219"></line>
+      </g>
+      <path id="neuAreaA" fill="url(#neuGradA)" d=""></path>
+      <path id="neuAreaB" fill="url(#neuGradB)" d=""></path>
+      <path id="neuLineA" fill="none" stroke-width="2.4" stroke-linecap="round" vector-effect="non-scaling-stroke" d=""></path>
+      <path id="neuLineB" fill="none" stroke-width="2.4" stroke-linecap="round" vector-effect="non-scaling-stroke" d=""></path>
+      <circle id="neuDotA" r="4.5" stroke-width="3" cx="0" cy="0"></circle>
+    </svg>
+    <div class="neu-axis" id="neu-axis"></div>
+  </div>
+  <div class="neu-legend">
+    <span><b class="neu-swatch is-a"></b>Визиты</span>
+    <span><b class="neu-swatch is-b"></b>Просмотры</span>
+  </div>
+  <div class="neu-chart-foot">
+    <button class="neu-toggle is-on" type="button" id="neu-live" aria-pressed="true">
+      <span class="neu-toggle-track"><i></i></span>
+      <span class="neu-toggle-label">Live — обновление каждые 3 с</span>
+    </button>
+    <span class="neu-meta" id="neu-ago">только что</span>
+  </div>
+</div>
+</section>
+
+<section class="neu-card neu-donut" id="neu-donut">
+  <h2>Источники трафика <small>доля визитов</small></h2>
+  <div class="neu-ring-wrap">
+    <svg class="neu-ring" viewBox="0 0 120 120" role="img" aria-label="Распределение визитов по источникам">
+      <circle class="neu-ring-bg" cx="60" cy="60" r="46"></circle>
+      <circle class="neu-ring-arc is-1" cx="60" cy="60" r="46" transform="rotate(-90 60 60)"></circle>
+      <circle class="neu-ring-arc is-2" cx="60" cy="60" r="46" transform="rotate(-90 60 60)"></circle>
+      <circle class="neu-ring-arc is-3" cx="60" cy="60" r="46" transform="rotate(-90 60 60)"></circle>
+    </svg>
+    <div class="neu-ring-ctr"><b id="neu-ring-pct">—</b><span>топ-источник</span></div>
+  </div>
+  <div class="neu-segments" id="neu-segments"></div>
+</section>
+
+<section class="neu-card neu-activity" id="neu-activity">
+  <h2>Последняя активность <small>по дням</small></h2>
+  <div class="neu-rows" id="neu-rows"></div>
 </section>
 
 <div class="grid" id="detail-panels">
@@ -135,17 +209,22 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 </div>
 <div class="app-tab-panel" data-tab-panel="cookie" role="tabpanel" hidden>
 <section class="panel" id="slide-cookie-panel">
-  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Баннер согласия и опциональная блокировка Яндекс.Метрики.</div></div></div>
-  <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">При включении вставьте обновлённый код в <code>&lt;head&gt;</code> без <code>async</code>: так баннер успеет остановить Яндекс.Метрику.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Мы используем файлы cookie и обрабатываем персональные данные. Проведите слайдер вправо, чтобы дать согласие и подтвердить, что Вы ознакомлены с <a href="#">Политикой обработки персональных данных</a>.</p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Проведите вправо для согласия</span><span class="sc-preview-knob">→</span></div></div></div></aside></div>
+  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Согласие на аналитику, отказ и управление Яндекс.Метрикой.</div></div></div>
+  <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a></p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Сдвиньте для согласия</span><span class="sc-preview-knob">→</span></div><div style="text-align:center;margin-top:14px;font-size:13px;line-height:1.6"><a href="#" style="color:#525252;text-decoration:underline;text-underline-offset:3px">Продолжить без аналитики</a></div></div></div></aside></div>
   <div class="cookie-config" id="slide-cookie-config" hidden>
     <label>Ссылка на политику<input id="slide-policy-url" type="url" placeholder="/privacy или https://site.ru/privacy"></label>
-    <label>ID Яндекс.Метрики <span class="muted">необязательно</span><input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
+    <label>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
+    <label>Владелец этого сайта — оператор ПД<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"><span class="slide-key-hint">Реквизиты применяются только к выбранному сайту.</span></label>
+    <label>Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
+    <label>Email для отзыва и обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
+    <label>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
+    <label style="grid-column:1 / -1">Дополнительные условия согласия<textarea id="slide-consent-text" rows="4" maxlength="3000" placeholder="При необходимости: условия обработки и сроки, принятые оператором. Основной текст формируется автоматически."></textarea></label>
     <label>Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
     <label>Значение параметра<input id="slide-key" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
     <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
     <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
     <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
-    <label class="collection-item"><input type="checkbox" id="slide-block-metrika"><span><strong>Блокировать Яндекс.Метрику</strong>До подтверждения согласия.</span></label>
+    <label class="collection-item"><input type="checkbox" id="slide-block-metrika" checked disabled><span><strong>Метрика только после согласия</strong>Включается после сохранения выбора. Вебвизор и карта кликов выключены.</span></label>
     <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить согласие заново</strong>Создаёт новую версию ключа согласия.</span></label>
   </div></div>
   <div class="collection-footer" style="padding:0 16px 16px"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить Slide Cookie</button></div>
@@ -171,6 +250,96 @@ let selectedSources = null;
 let pendingSources = null;
 let sitesById = {};
 let latestStatsData = null;
+
+const THEME_STORAGE_KEY = 'clickshot:admin-theme';
+const TAB_TITLES = {
+  stats: 'Статистика сайта',
+  settings: 'Настройки счётчика',
+  cookie: 'Slide Cookie'
+};
+
+function currentTheme(){
+  return document.documentElement.getAttribute('data-theme') === 'classic' ? 'classic' : 'neu';
+}
+
+function applyTheme(theme, persist){
+  const next = theme === 'classic' ? 'classic' : 'neu';
+  document.documentElement.setAttribute('data-theme', next);
+  if(persist !== false){
+    try { localStorage.setItem(THEME_STORAGE_KEY, next); } catch(e) {}
+  }
+  const text = next === 'neu' ? 'Классическая тема' : 'Неоморфная тема';
+  document.querySelectorAll('[data-theme-toggle]').forEach(button => {
+    const label = button.querySelector('[data-theme-label]');
+    if(label) label.textContent = text; else button.textContent = text;
+    button.setAttribute('aria-label', next === 'neu' ? 'Включить классическую тему' : 'Включить неоморфическую тему');
+  });
+  document.dispatchEvent(new CustomEvent('clickshot:theme', {detail: {theme: next}}));
+}
+
+document.querySelectorAll('[data-theme-toggle]').forEach(button => {
+  button.addEventListener('click', () => applyTheme(currentTheme() === 'neu' ? 'classic' : 'neu'));
+});
+
+applyTheme(currentTheme(), false);
+
+function switchTab(tab){
+  document.querySelectorAll('.app-tab').forEach(item => {
+    const active = item.dataset.tab === tab;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-selected', String(active));
+  });
+  document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+    panel.hidden = panel.dataset.tabPanel !== tab;
+  });
+  document.querySelectorAll('[data-neu-tab]').forEach(item => {
+    item.classList.toggle('is-active', item.dataset.neuTab === tab);
+  });
+  const title = document.querySelector('#neu-title');
+  if(title) title.textContent = TAB_TITLES[tab] || TAB_TITLES.stats;
+  const period = document.querySelector('#neu-period');
+  if(period) period.hidden = tab !== 'stats';
+  // Период имеет смысл только для статистики — в остальных разделах он лишний.
+  document.querySelectorAll('#days, #custom-range').forEach(element => {
+    element.hidden = tab !== 'stats';
+  });
+}
+
+// Дельты KPI к предыдущему периоду той же длины.
+function applyDeltas(totals, previous){
+  const set = (selector, result) => {
+    const el = document.querySelector(selector);
+    if(!el) return;
+    el.textContent = result[0];
+    el.className = 'neu-kpi-delta' + (result[1] ? ' is-' + result[1] : '');
+  };
+  const num = value => (value === null || value === undefined || value === '' ? null : Number(value));
+  const ratio = (current, base) => {
+    if(current === null || base === null) return ['—', ''];
+    if(!base) return [current ? '▲ начало периода' : '0%', current ? 'up' : ''];
+    const diff = (current - base) / base * 100;
+    if(Math.abs(diff) < 0.05) return ['без изменений', ''];
+    return [(diff > 0 ? '▲ ' : '▼ ') + Math.abs(diff).toFixed(1) + '%', diff > 0 ? 'up' : 'down'];
+  };
+  const points = (current, base) => {
+    if(current === null || base === null) return ['—', ''];
+    const diff = current - base;
+    if(Math.abs(diff) < 0.05) return ['без изменений', ''];
+    return [(diff > 0 ? '▲ ' : '▼ ') + Math.abs(diff).toFixed(1) + ' п.п.', diff > 0 ? 'up' : 'down'];
+  };
+  if(!totals){
+    set('#pageviews-delta', ['—', '']);
+    set('#visits-delta', ['—', '']);
+    set('#bounce-delta', ['—', '']);
+    set('#depth-delta', ['—', '']);
+    return;
+  }
+  const prev = previous || {};
+  set('#pageviews-delta', ratio(num(totals.pageviews), num(prev.pageviews)));
+  set('#visits-delta', ratio(num(totals.visits), num(prev.visits)));
+  set('#bounce-delta', points(num(totals.bounce_rate), num(prev.bounce_rate)));
+  set('#depth-delta', ratio(num(totals.depth), num(prev.depth)));
+}
 
 function fmt(v){
   return new Intl.NumberFormat("ru-RU").format(Number(v||0));
@@ -228,17 +397,7 @@ function syncSourceFilter(sources, enabled){
 }
 
 document.querySelectorAll('.app-tab').forEach(button => {
-  button.addEventListener('click', () => {
-    const tab = button.dataset.tab;
-    document.querySelectorAll('.app-tab').forEach(item => {
-      const active = item === button;
-      item.classList.toggle('active', active);
-      item.setAttribute('aria-selected', String(active));
-    });
-    document.querySelectorAll('[data-tab-panel]').forEach(panel => {
-      panel.hidden = panel.dataset.tabPanel !== tab;
-    });
-  });
+  button.addEventListener('click', () => switchTab(button.dataset.tab));
 });
 
 async function loadSites(){
@@ -307,12 +466,12 @@ function updateSnippet(){
   const id = (select && select.value) ? select.value : 'SITE_ID';
   const cookieToggle = document.querySelector('#slide-cookie-enabled');
   const cookieEnabled = cookieToggle ? cookieToggle.checked : !!currentSlideCookie().enabled;
-  document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '"' + (cookieEnabled ? '' : ' async') + '><\/script>';
+  document.querySelector('#snippet').textContent = '<script src="https://metrika.clickshot.ru/counter.js?id=' + id + '" referrerpolicy="no-referrer"' + (cookieEnabled ? '' : ' async') + '><\/script>';
 }
 
 function currentSlideCookie(){
   const site = sitesById[document.querySelector('#site').value];
-  return site && site.slide_cookie ? site.slide_cookie : {enabled:false, policy_url:'', param:'always', key:'', block_metrika:true, ym_counter:'', accent_color:'#C5FF1A', dark_color:'#0A0A0A', accent_text_color:'#C5FF1A', version:1};
+  return site && site.slide_cookie ? site.slide_cookie : {enabled:false, policy_url:'', param:'always', key:'', block_metrika:true, ym_counter:'', accent_color:'#C5FF1A', dark_color:'#0A0A0A', accent_text_color:'#C5FF1A', version:1, operator_name:'', operator_address:'', operator_email:'', consent_text:'', consent_days:180, strict_preconsent:true};
 }
 
 function updateSlidePreview(){
@@ -343,16 +502,18 @@ function renderSlideCookieSettings(){
   const c = currentSlideCookie();
   document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
   document.querySelector('#slide-policy-url').value = c.policy_url || '';
+  for (const name of ['operator-name','operator-address','operator-email','consent-text']) document.querySelector('#slide-' + name).value = c[name.replaceAll('-', '_')] || '';
+  document.querySelector('#slide-consent-days').value = c.consent_days || 180;
   document.querySelector('#slide-param').value = c.param || 'always';
   document.querySelector('#slide-key').value = c.key || '';
   document.querySelector('#slide-ym-counter').value = c.ym_counter || '';
   document.querySelector('#slide-accent-color').value = c.accent_color || '#C5FF1A';
   document.querySelector('#slide-dark-color').value = c.dark_color || '#0A0A0A';
   document.querySelector('#slide-accent-text-color').value = c.accent_text_color || '#C5FF1A';
-  document.querySelector('#slide-block-metrika').checked = !!c.block_metrika;
+  document.querySelector('#slide-block-metrika').checked = true;
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
-  document.querySelector('#slide-cookie-status').textContent = c.enabled ? 'Версия согласия: ' + (c.version || 1) : 'Slide Cookie выключен.';
+  document.querySelector('#slide-cookie-status').textContent = c.enabled ? ((c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
   syncSlideParamField();
   updateSlidePreview();
 }
@@ -400,6 +561,8 @@ async function loadStats(){
     });
     document.querySelector('#source-filter').hidden = true;
     latestStatsData = null;
+    window.clickshotStats = null;
+    applyDeltas(null, null);
     return;
   }
 
@@ -421,7 +584,10 @@ async function loadStats(){
     const d = await r.json();
     if (requestId !== loadStats.requestId) return;
     latestStatsData = d;
+    window.clickshotStats = d;
     applyCollectionVisibility(d.collection);
+    applyDeltas(d.totals, d.previous);
+    document.dispatchEvent(new CustomEvent('clickshot:stats', {detail: d}));
     syncSourceFilter(d.available_sources, !!(d.collection && d.collection.referrers));
     document.querySelector('#pageviews').textContent = fmt(d.totals.pageviews);
     document.querySelector('#visits').textContent = fmt(d.totals.visits);
@@ -529,7 +695,13 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     param: document.querySelector('#slide-param').value.trim() || 'always',
     key: document.querySelector('#slide-key').value.trim(),
     ym_counter: document.querySelector('#slide-ym-counter').value.trim(),
-    block_metrika: document.querySelector('#slide-block-metrika').checked,
+    block_metrika: true,
+    operator_name: document.querySelector('#slide-operator-name').value.trim(),
+    operator_address: document.querySelector('#slide-operator-address').value.trim(),
+    operator_email: document.querySelector('#slide-operator-email').value.trim(),
+    consent_text: document.querySelector('#slide-consent-text').value.trim(),
+    consent_days: Number(document.querySelector('#slide-consent-days').value),
+    strict_preconsent: true,
     accent_color: document.querySelector('#slide-accent-color').value,
     dark_color: document.querySelector('#slide-dark-color').value,
     accent_text_color: document.querySelector('#slide-accent-text-color').value,
@@ -661,7 +833,7 @@ document.querySelector('#check-install').addEventListener('click', async () => {
       status.textContent = 'Код найден: ' + found.join(', ');
       if (result.checks.some(item => item.warnings && item.warnings.length)) {
         status.className = 'snippet-status is-error';
-        status.textContent += '. Есть async/defer, статический тег Метрики или пиксель: проверьте блокировку до согласия по инструкции.';
+        status.textContent += '. Найдено неподдерживаемое подключение. Удалите сторонние теги и пиксели Метрики; оставьте управляемую загрузку ClickShot.';
       }
     } else {
       const unavailable = result.checks.every(item => item.status === 'unavailable');

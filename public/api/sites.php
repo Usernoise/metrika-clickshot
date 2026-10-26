@@ -31,7 +31,7 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     try {
-        $input = json_input();
+        $input = json_input(32768);
         $id = clean_site_id($input['id'] ?? '');
         if (array_key_exists('id', $input) && $id === '') throw new InvalidArgumentException('Некорректный ID сайта');
         $name = input_string($input['name'] ?? '', 'name', 200);
@@ -97,6 +97,7 @@ if ($method === 'POST') {
             ':updated_at' => date(DATE_ATOM),
         ]);
 
+        save_consent_details($id, $slideCookie);
         $pdo->commit();
         respond_json(201, ['ok' => true, 'id' => $id]);
     } catch (Throwable $e) {
@@ -109,7 +110,7 @@ if ($method === 'POST') {
 
 if ($method === 'PUT') {
     try {
-        $input = json_input();
+        $input = json_input(32768);
         $id = clean_site_id($input['id'] ?? '');
         $pdo = db();
         $pdo->beginTransaction();
@@ -164,6 +165,7 @@ if ($method === 'PUT') {
             ':accent_text_color' => $slideCookie['accent_text_color'], ':cookie_version' => $slideCookie['version'],
             ':updated_at' => date(DATE_ATOM),
         ]);
+        save_consent_details($id, $slideCookie);
         $pdo->commit();
         respond_json(200, ['ok' => true, 'collection' => $settings, 'slide_cookie' => $slideCookie]);
     } catch (Throwable $e) {
@@ -174,7 +176,7 @@ if ($method === 'PUT') {
 
 if ($method === 'DELETE') {
     try {
-        $input = json_input();
+        $input = json_input(32768);
         $id = clean_site_id($input['id'] ?? '');
 
         if ($id === '') {
