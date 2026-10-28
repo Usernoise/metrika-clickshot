@@ -468,9 +468,17 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
     foreach (['enabled', 'block_metrika'] as $key) {
         if (array_key_exists($key, $value)) $settings[$key] = input_bool($value[$key]);
     }
-    foreach (['policy_url', 'param', 'key', 'ym_counter'] as $key) {
-        if (array_key_exists($key, $value)) $settings[$key] = input_string($value[$key], $key, $key === 'policy_url' ? 2048 : 128);
+    // Collect every problem so the form can show them all at once.
+    $errors = [];
+    $limits = ['policy_url' => [2048, 'ссылка на политику'], 'param' => [64, 'параметр показа'],
+        'key' => [128, 'значение параметра'], 'ym_counter' => [20, 'ID Метрики']];
+    foreach ($limits as $key => [$limit, $label]) {
+        if (!array_key_exists($key, $value)) continue;
+        $text = input_string($value[$key], $key, PHP_INT_MAX);
+        if (mb_strlen($text) > $limit) $errors[] = "{$label}: не длиннее {$limit} символов";
+        else $settings[$key] = $text;
     }
+    $settings['policy_url'] = normalize_policy_url($settings['policy_url']);
     foreach (['accent_color', 'dark_color', 'accent_text_color'] as $key) {
         if (array_key_exists($key, $value)) {
             $color = input_string($value[$key], $key, 7);
@@ -478,13 +486,13 @@ function clean_slide_cookie_settings(mixed $value, ?array $fallback = null): arr
             $settings[$key] = strtoupper($color);
         }
     }
-    if ($settings['policy_url'] !== '' && !preg_match('~^(?:https?://|/|\./|\.\./|\?|#)~i', $settings['policy_url'])) throw new InvalidArgumentException('Ссылка на политику должна начинаться с / или https://');
-    if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $settings['param'])) throw new InvalidArgumentException('Некорректный параметр показа');
-    if (mb_strlen($settings['key']) > 128) throw new InvalidArgumentException('Значение параметра показа длиннее 128 символов');
-    if (!preg_match('/^\d{0,20}$/', $settings['ym_counter'])) throw new InvalidArgumentException('ID Яндекс.Метрики — только цифры, без пробелов');
-    if ($settings['enabled'] && $settings['policy_url'] === '') throw new InvalidArgumentException('Укажите ссылку на политику для Slide Cookie');
+    if (!preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $settings['param'])) $errors[] = 'некорректный параметр показа';
+    if (!preg_match('/^\d{0,20}$/', $settings['ym_counter'])) $errors[] = 'ID Метрики — только цифры';
+    if ($settings['enabled'] && $settings['param'] !== 'always' && $settings['key'] === '') {
+        $errors[] = 'укажите значение параметра показа или выберите «Всегда показывать»';
+    }
     if (($value['reset_consent'] ?? false) === true) $settings['version']++;
-    return clean_consent_details($value, $settings, $fallback);
+    return clean_consent_details($value, $settings, $fallback, $errors);
 }
 
 function site_collection_settings(string $siteId): array

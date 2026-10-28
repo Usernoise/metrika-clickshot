@@ -19,7 +19,7 @@
     function setImportant(el, prop, value) { el.style.setProperty(prop, value, 'important'); }
     function safeUrl(value) {
         if (!value || typeof value !== 'string' || /[\s\\]/.test(value) || value.startsWith('//')) return '';
-        return /^(?:https?:\/\/[^/]+|\/(?!\/)[^?#]+|\.{1,2}\/[^?#]+)/i.test(value) ? value : '';
+        return /^(?:https?:\/\/[^/]+|\/(?!\/))/i.test(value) ? value : '';
     }
     function checkActivation() {
         return (CONFIG.UTM_PARAM === 'always' && !CONFIG.UTM_KEY)

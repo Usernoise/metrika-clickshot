@@ -53,14 +53,24 @@ function consent_details(string $siteId): array
     return array_replace(consent_defaults(), json_decode($stmt->fetchColumn() ?: '{}', true) ?: []);
 }
 
+// Bare domains such as "site.ru/privacy" are what people paste most often.
+function normalize_policy_url(string $url): string
+{
+    $url = trim($url);
+    if (preg_match('~^(?:www\.)?[\p{L}0-9-]+(?:\.[\p{L}0-9-]+)*\.(?!(?:html?|php|pdf|aspx?)(?:[/?#]|$))\p{L}{2,24}(?:[/?#]|$)~iu', $url)) return 'https://' . $url;
+    return $url;
+}
+
+// Relative links must start at the site root: "./privacy" would resolve against
+// whatever page the banner is shown on.
 function consent_policy_url_valid(string $url): bool
 {
-    if ($url === '' || preg_match('/[\x00-\x20\\\\]/', $url) || str_starts_with($url, '//')) return false;
+    if ($url === '' || preg_match('/[\x00-\x20\\\\]/', $url)) return false;
     if (preg_match('~^https?://~i', $url)) {
         $parts = parse_url($url);
         return $parts !== false && !empty($parts['host']) && !isset($parts['user']) && !isset($parts['pass']);
     }
-    return preg_match('~^(?:/(?!/)|\./|\.\./)[^?#]+~', $url) === 1;
+    return preg_match('~^/(?!/)~', $url) === 1;
 }
 
 function consent_ready(array $settings): bool
@@ -77,34 +87,41 @@ function consent_missing(array $settings): array
     if ($settings['operator_name'] === '') $missing[] = 'укажите оператора ПД';
     if ($settings['operator_address'] === '') $missing[] = 'укажите адрес оператора';
     if (filter_var($settings['operator_email'], FILTER_VALIDATE_EMAIL) === false) $missing[] = 'укажите корректный email (латиницей)';
-    if (!consent_policy_url_valid($settings['policy_url'])) $missing[] = 'укажите ссылку на политику: /privacy или https://site.ru/privacy';
-    if (preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) !== 1) $missing[] = 'укажите ID Метрики — только цифры';
+    if ($settings['policy_url'] === '') $missing[] = 'укажите ссылку на политику';
+    if ($settings['ym_counter'] === '') $missing[] = 'укажите ID Метрики';
     if (!$settings['block_metrika']) $missing[] = 'включите блокировку Метрики до согласия';
     return $missing;
 }
 
-function clean_consent_details(array $input, array $settings, ?array $fallback): array
+function clean_consent_details(array $input, array $settings, ?array $fallback, array $errors = []): array
 {
     $settings = array_replace(consent_defaults(), $settings);
+    $labels = ['operator_name' => 'оператор', 'operator_address' => 'адрес', 'operator_email' => 'email', 'consent_text' => 'дополнительные условия'];
     foreach (['operator_name' => 300, 'operator_address' => 500, 'operator_email' => 254, 'consent_text' => 3000] as $key => $limit) {
-        if (array_key_exists($key, $input)) $settings[$key] = input_string($input[$key], $key, $limit);
+        if (!array_key_exists($key, $input)) continue;
+        $text = input_string($input[$key], $key, PHP_INT_MAX);
+        if (mb_strlen($text) > $limit) $errors[] = "{$labels[$key]}: не длиннее {$limit} символов";
+        else $settings[$key] = $text;
     }
     if (array_key_exists('consent_days', $input)) {
         if (!is_int($input['consent_days']) || $input['consent_days'] < 1 || $input['consent_days'] > 365) {
-            throw new InvalidArgumentException('Срок согласия: от 1 до 365 дней');
+            $errors[] = 'срок согласия — целое число дней от 1 до 365';
+        } else {
+            $settings['consent_days'] = $input['consent_days'];
         }
-        $settings['consent_days'] = $input['consent_days'];
     }
     if (array_key_exists('strict_preconsent', $input)) $settings['strict_preconsent'] = input_bool($input['strict_preconsent']);
     if ($settings['policy_url'] !== '' && !consent_policy_url_valid($settings['policy_url'])) {
-        throw new InvalidArgumentException('Укажите рабочий путь или https-ссылку на политику, без заглушки #');
+        $errors[] = 'ссылка на политику должна начинаться с / или https:// (например, /privacy или https://site.ru/privacy)';
     }
-    if ($settings['enabled']) {
-        $missing = consent_missing($settings);
-        if ($missing) throw new InvalidArgumentException('Slide Cookie не сохранён: ' . implode('; ', $missing));
+    if ($settings['ym_counter'] !== '' && preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) !== 1) {
+        $errors[] = 'ID Метрики — число без ведущего нуля, до 15 цифр';
     }
+    if ($settings['enabled']) $errors = array_merge($errors, consent_missing($settings));
+    if ($errors) throw new InvalidArgumentException('Slide Cookie не сохранён: ' . implode('; ', array_unique($errors)));
     if ($fallback !== null) {
-        $material = ['enabled', 'policy_url', 'ym_counter', 'block_metrika', 'operator_name',
+        // Toggling the banner is not a change of terms: visitors keep their choice.
+        $material = ['policy_url', 'ym_counter', 'block_metrika', 'operator_name',
             'operator_address', 'operator_email', 'consent_text', 'consent_days', 'strict_preconsent'];
         foreach ($material as $key) {
             if (($settings[$key] ?? null) !== ($fallback[$key] ?? consent_defaults()[$key] ?? null)) {

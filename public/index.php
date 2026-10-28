@@ -212,15 +212,15 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
   <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Согласие на аналитику, отказ и управление Яндекс.Метрикой.</div></div></div>
   <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a></p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Сдвиньте для согласия</span><span class="sc-preview-knob">→</span></div><div style="text-align:center;margin-top:14px;font-size:13px;line-height:1.6"><a href="#" style="color:#525252;text-decoration:underline;text-underline-offset:3px">Продолжить без аналитики</a></div></div></div></aside></div>
   <div class="cookie-config" id="slide-cookie-config" hidden>
-    <label>Ссылка на политику<input id="slide-policy-url" type="url" placeholder="/privacy или https://site.ru/privacy"></label>
-    <label>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" placeholder="12345678"></label>
+    <label>Ссылка на политику<input id="slide-policy-url" type="text" inputmode="url" maxlength="2048" placeholder="/privacy или https://site.ru/privacy"></label>
+    <label>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
     <label>Владелец этого сайта — оператор ПД<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"><span class="slide-key-hint">Реквизиты применяются только к выбранному сайту.</span></label>
     <label>Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
     <label>Email для отзыва и обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
-    <label>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
+    <label>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" step="1" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
     <label style="grid-column:1 / -1">Дополнительные условия согласия<textarea id="slide-consent-text" rows="4" maxlength="3000" placeholder="При необходимости: условия обработки и сроки, принятые оператором. Основной текст формируется автоматически."></textarea></label>
     <label>Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
-    <label>Значение параметра<input id="slide-key" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
+    <label>Значение параметра<input id="slide-key" maxlength="128" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
     <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
     <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
     <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
@@ -711,7 +711,7 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
   button.disabled = true; status.textContent = 'Сохраняем…'; status.classList.remove('is-error');
   try {
     const r = await fetch('/api/sites.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:site, slide_cookie})});
-    const d = await r.json();
+    const d = await r.json().catch(() => { throw new Error('Сервер вернул HTTP ' + r.status + ', попробуйте ещё раз'); });
     if(!r.ok || !d.ok) throw new Error(d.error || 'Не удалось сохранить Slide Cookie');
     sitesById[site].slide_cookie = d.slide_cookie;
     if (document.querySelector('#site').value !== site) return;
