@@ -7,6 +7,11 @@
     const CONFIG = Object.assign({ACCENT_COLOR:'#C5FF1A', DARK_COLOR:'#0A0A0A', ACCENT_TEXT_COLOR:'#C5FF1A', UTM_PARAM:'always', UTM_KEY:''}, window.__clickShotSlideCookieConfig || {});
     CONFIG.POLICY_URL = safeUrl(CONFIG.POLICY_URL);
     CONFIG.STORAGE_KEY = CONFIG.STORAGE_KEY || 'clickshot:cookie-choice';
+    const cookieEnabled = CONFIG.COOKIE_ENABLED !== false;
+    const challengeKey = CONFIG.STORAGE_KEY + ':challenge:' + (CONFIG.DOCUMENT?.version || 1) + ':' + (cookieEnabled ? 'refusal' : 'only');
+    let challengePassed = false;
+    try { challengePassed = sessionStorage.getItem(challengeKey) === 'passed'; } catch (_) {}
+    function needsChallenge() { return !challengePassed && (!cookieEnabled || (CONFIG.REJECT_ACTION === 'slider' && current(choice) && choice.decision !== 'granted')); }
     const endpoint = CONFIG.SITE_ID && script && script.src
         ? new URL('/api/consent.php?site=' + encodeURIComponent(CONFIG.SITE_ID), script.src).href : '';
     const PREFIX = 'cc-' + Date.now() + '-';
@@ -36,7 +41,7 @@
         return value && CONFIG.DOCUMENT && value.version === CONFIG.DOCUMENT.version
             && value.hash === CONFIG.DOCUMENT.hash && Number.isFinite(value.expires_at) && value.expires_at > Date.now();
     }
-    function allowed() { return verified && choice && choice.decision === 'granted' && current(choice); }
+    function allowed() { return cookieEnabled && verified && choice && choice.decision === 'granted' && current(choice); }
     function store(value) {
         choice = value;
         try { localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(value)); } catch (_) {}
@@ -157,7 +162,8 @@
             hash:CONFIG.DOCUMENT?.hash, created_at:Date.now(), expires_at:Date.now() + (CONFIG.DOCUMENT?.days || 180) * 86400000,
             pending_receipt:receipt, pending:true});
         trackGoal(action === 'withdrawn' ? 'cookie_consent_withdrawn' : 'cookie_consent_denied');
-        closeBanner();
+        if (CONFIG.REJECT_ACTION === 'slider' && !challengePassed) showChallenge();
+        else closeBanner();
         try {
             const data = await request(action, receipt);
             if (choice?.pending && choice.pending_receipt === receipt) store(data.choice);
@@ -180,7 +186,16 @@
     }
     async function restore() {
         const turn = sequence;
+        if (!cookieEnabled) {
+            await domReady;
+            if (checkActivation() && !challengePassed) start(true);
+            return;
+        }
         choice = readChoice();
+        // Keep the continuation gate active while an offline refusal is retried.
+        if (needsChallenge() && checkActivation()) domReady.then(() => {
+            if (turn === sequence && needsChallenge()) showChallenge();
+        });
         if (choice?.pending) {
             try {
                 const data = await request(choice.decision, choice.pending_receipt || '');
@@ -196,8 +211,11 @@
         publish();
         await domReady;
         if (turn !== sequence) return;
-        if (current(choice) && (choice.decision !== 'granted' || verified)) closeBanner();
-        else if (checkActivation()) start();
+        if (current(choice) && (choice.decision !== 'granted' || verified) && !needsChallenge()) closeBanner();
+        else if (checkActivation()) {
+            if (needsChallenge()) showChallenge();
+            else start();
+        }
     }
 
     let metrikaBlockInstalled = false;
@@ -280,7 +298,7 @@
     }
 
     // ========== СОЗДАНИЕ ОКНА СОГЛАСИЯ ==========
-    function createBanner() {
+    function createBanner(challenge = false) {
         const animationName = PREFIX + 'slideHint';
         const titleId = PREFIX + 'title';
         const descId = PREFIX + 'desc';
@@ -366,7 +384,7 @@
         // Заголовок
         const title = document.createElement('h2');
         title.id = titleId;
-        title.textContent = 'Сайт использует cookie';
+        title.textContent = challenge ? 'Проверка перед продолжением' : 'Сайт использует cookie';
         title.style.cssText = `
             margin: 0 0 10px 0 !important;
             padding: 0 !important;
@@ -386,8 +404,9 @@
         description.style.cssText = "margin:0 0 16px!important;font:14px/1.5 system-ui,sans-serif!important;color:#525252!important;text-align:center!important;";
         description.textContent = CONFIG.READY
             ? (CONFIG.DOCUMENT?.operator ? CONFIG.DOCUMENT.operator + ' использует Яндекс.Метрику для анализа посещаемости. ' : '')
-                + 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.'
+                + 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. ' + (CONFIG.REJECT_ACTION === 'slider' ? 'При отказе потребуется проверка слайдером. После неё сайт будет доступен без cookie для аналитики.' : 'Отказ не ограничивает доступ к сайту.')
             : 'Разрешение аналитики временно недоступно. Вы можете продолжить пользоваться сайтом без неё.';
+        if (challenge) description.textContent = 'Проведите слайдер вправо для продолжения.' + (cookieEnabled ? ' Доступ к сайту будет продолжен без сбора cookie для аналитики. Яндекс.Метрика останется выключенной.' : '');
         const documents = document.createElement('div');
         documents.style.cssText = 'margin:0 0 18px!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
         const consentContent = document.createElement('div');
@@ -463,7 +482,7 @@
         slider.setAttribute('aria-valuemax', '100');
         slider.setAttribute('aria-valuenow', '0');
         slider.setAttribute('aria-valuetext', '0 процентов');
-        slider.setAttribute('aria-label', 'Проведите вправо, чтобы разрешить аналитику');
+        slider.setAttribute('aria-label', challenge ? 'Проведите слайдер вправо для продолжения' : 'Проведите вправо, чтобы разрешить аналитику');
         slider.setAttribute('aria-describedby', hintId);
         slider.style.cssText = `
             position: absolute !important;
@@ -503,8 +522,8 @@
 
         // Текст внутри трека — декоративный дубль, для скринридера скрыт
         const trackText = document.createElement('div');
-        trackText.textContent = 'Сдвиньте для согласия';
-        if (!CONFIG.READY) { track.hidden = true; setImportant(track, 'display', 'none'); }
+        trackText.textContent = challenge ? 'Сдвиньте для продолжения' : 'Сдвиньте для согласия';
+        if (!challenge && !CONFIG.READY) { track.hidden = true; setImportant(track, 'display', 'none'); }
         trackText.setAttribute('aria-hidden', 'true');
         trackText.style.cssText = `
             position: absolute !important;
@@ -532,7 +551,7 @@
         const hint = document.createElement('span');
         hint.id = hintId;
         hint.className = PREFIX + 'sr-only';
-        hint.textContent = 'Стрелка вправо или клавиша End доводят слайдер до конца. Enter или пробел принимают cookie.';
+        hint.textContent = challenge ? 'Стрелка вправо или End доводят слайдер до конца. Enter или пробел завершают проверку.' : 'Стрелка вправо или клавиша End доводят слайдер до конца. Enter или пробел принимают cookie.';
 
         const liveRegion = document.createElement('span');
         liveRegion.className = PREFIX + 'sr-only';
@@ -547,7 +566,7 @@
         // Собираем контейнер
         container.appendChild(title);
         container.appendChild(description);
-        container.appendChild(documents);
+        if (!challenge) container.appendChild(documents);
         container.appendChild(track);
         container.appendChild(hint);
         container.appendChild(liveRegion);
@@ -555,7 +574,7 @@
         refusal.style.cssText = 'margin:16px 0 0!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
         const rejectLink = makeLink(allowed() ? 'Отозвать согласие' : 'Продолжить без аналитики', () => { reject(); });
         refusal.appendChild(rejectLink);
-        container.appendChild(refusal);
+        if (!challenge) container.appendChild(refusal);
         const errorMessage = document.createElement('p');
         errorMessage.setAttribute('role', 'alert');
         errorMessage.style.cssText = 'margin:12px 0 0!important;font:13px/1.5 system-ui,sans-serif!important;color:#9f2929!important;text-align:center!important;';
@@ -565,9 +584,9 @@
         document.body.appendChild(overlay);
 
         // Only anonymous ClickShot banner aggregates; never sent to Yandex.
-        trackGoal('cookie_consent_shown');
+        trackGoal(challenge ? 'slider_challenge_shown' : 'cookie_consent_shown');
 
-        return { overlay, container, slider, sliderIcon, progress, track, trackText, style, liveRegion, rejectLink, errorMessage };
+        return { challenge, overlay, container, slider, sliderIcon, progress, track, trackText, style, liveRegion, rejectLink, errorMessage };
     }
 
     // ========== ИЗОЛЯЦИЯ ФОНА (a11y) ==========
@@ -648,8 +667,10 @@
             if (elements.style && elements.style.parentNode) {
                 elements.style.remove();
             }
-            unlockBackground();
-            if (activeBanner === elements) activeBanner = null;
+            if (activeBanner === elements) {
+                unlockBackground();
+                activeBanner = null;
+            }
         }, 300);
     }
 
@@ -720,22 +741,25 @@
         }
 
         async function accept(method = 'slider') {
-            if (accepted || !CONFIG.READY || pendingRequest || elements.closing) return;
+            if (accepted || (!elements.challenge && !CONFIG.READY) || pendingRequest || elements.closing) return;
             isDragging = false;
             slider.setAttribute('aria-disabled', 'true');
             elements.errorMessage.textContent = '';
             trackText.textContent = 'Сохраняем выбор…';
             try {
-                if (!await grant(method)) return;
+                if (elements.challenge) {
+                    challengePassed = true;
+                    try { sessionStorage.setItem(challengeKey, 'passed'); } catch (_) {}
+                } else if (!await grant(method)) return;
                 if (elements.closing) return;
                 accepted = true;
                 currentX = maxDistance;
                 render();
                 sliderIcon.textContent = '✓';
                 setImportant(slider, 'animation', 'none');
-                trackText.textContent = 'Согласие принято';
-                liveRegion.textContent = 'Согласие принято';
-                trackGoal('cookie_consent_accepted');
+                trackText.textContent = elements.challenge ? 'Проверка пройдена' : 'Согласие принято';
+                liveRegion.textContent = trackText.textContent;
+                trackGoal(elements.challenge ? 'slider_challenge_passed' : 'cookie_consent_accepted');
                 closeBanner();
             } catch (error) {
                 elements.errorMessage.textContent = error.message || 'Не удалось сохранить согласие. Можно продолжить без аналитики.';
@@ -743,7 +767,7 @@
             } finally {
                 if (!accepted) {
                     slider.setAttribute('aria-disabled', 'false');
-                    trackText.textContent = 'Сдвиньте для согласия';
+                    trackText.textContent = elements.challenge ? 'Сдвиньте для продолжения' : 'Сдвиньте для согласия';
                 }
             }
         }
@@ -768,11 +792,11 @@
         }
 
         function onStart(e) {
-            if (accepted || isDragging || pendingRequest || !CONFIG.READY) return;
+            if (accepted || isDragging || pendingRequest || (!elements.challenge && !CONFIG.READY)) return;
 
             if (!startedTracked) {
                 startedTracked = true;
-                trackGoal('cookie_consent_started');
+                trackGoal(elements.challenge ? 'slider_challenge_started' : 'cookie_consent_started');
             }
 
             const x = clientXOf(e);
@@ -981,27 +1005,39 @@
         elements.teardown = teardownListeners;
         // Фокус внутрь модалки. Escape намеренно не обрабатываем:
         // случайное нажатие не должно трактоваться ни как согласие, ни как отказ.
-        const firstControl = CONFIG.READY ? slider : elements.rejectLink;
+        const firstControl = elements.challenge || CONFIG.READY ? slider : elements.rejectLink;
         try { firstControl.focus({ preventScroll: true }); } catch (_) { firstControl.focus(); }
     }
 
-    function start() {
+    function showChallenge() {
+        if (activeBanner?.challenge) return;
+        if (activeBanner) {
+            activeBanner.teardown?.();
+            activeBanner.overlay.remove();
+            activeBanner.style?.remove();
+            unlockBackground();
+            activeBanner = null;
+        }
+        start(true);
+    }
+    function start(challenge = !cookieEnabled || needsChallenge()) {
         if (activeBanner) return;
-        const elements = createBanner();
+        const elements = createBanner(challenge);
         activeBanner = elements;
         lockBackground(elements.overlay);
         initSlider(elements);
     }
     window.ClickShotConsent = {
         open: () => domReady.then(start),
-        withdraw: reject,
+        withdraw: () => cookieEnabled ? reject() : Promise.resolve(),
         getState: () => ({decision:choice?.decision || 'unknown', analytics:!!allowed()})
     };
     domReady.then(() => {
         const style = document.createElement('style');
         style.textContent = '[data-clickshot-link]:focus-visible{outline:2px solid #525252!important;outline-offset:4px!important;}';
         document.head.appendChild(style);
-        settingsLink = makeLink('Настройки cookie', start);
+        if (!cookieEnabled) return;
+        settingsLink = makeLink('Настройки cookie', () => start());
         settingsLink.dataset.clickshotSettings = 'true';
         settingsLink.style.cssText += 'position:fixed!important;bottom:12px!important;left:16px!important;z-index:2147483645!important;background:#fff!important;padding:2px 4px!important;font-family:system-ui,sans-serif!important;';
         document.body.appendChild(settingsLink);

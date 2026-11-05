@@ -81,6 +81,20 @@ try {
   await status.filter({hasText:'срок согласия'}).waitFor();
   assert.equal(await status.evaluate(el=>el.classList.contains('is-error')),true,'Errors are highlighted');
 
+  // Hidden consent fields must not prevent enabling the standalone challenge.
+  await page.locator('#slide-policy-url').fill('./unfinished-policy');
+  await page.locator('#slide-cookie-consent-enabled').uncheck();
+  const standaloneResponse = page.waitForResponse(r=>r.url().endsWith('/api/sites.php') && r.request().method()==='PUT');
+  await page.locator('#save-slide-cookie').click();
+  const standalone = await standaloneResponse;
+  assert.equal(standalone.status(),200,await standalone.text());
+  await status.filter({hasText:'Сохранено'}).waitFor();
+  await open();
+  assert.equal(await page.locator('#slide-cookie-consent-enabled').isChecked(),false);
+  await page.locator('#slide-cookie-consent-enabled').check();
+  assert.equal(await page.locator('#slide-policy-url').inputValue(),'https://example.test/privacy','Disabling cookies preserves the last saved consent settings');
+  assert.equal(await page.locator('#slide-consent-days').inputValue(),'90');
+
   await page.route('**/api/sites.php',route=>route.request().method()==='PUT' ? route.fulfill({status:502,contentType:'text/html',body:'<html>502</html>'}) : route.continue());
   await page.locator('#slide-consent-days').fill('90');
   await page.locator('#save-slide-cookie').click();

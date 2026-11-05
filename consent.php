@@ -43,7 +43,8 @@ SQL);
 function consent_defaults(): array
 {
     return ['operator_name' => '', 'operator_address' => '', 'operator_email' => '',
-        'consent_text' => '', 'consent_days' => 180, 'strict_preconsent' => true];
+        'consent_text' => '', 'consent_days' => 180, 'strict_preconsent' => true,
+        'cookie_enabled' => true, 'reject_action' => 'close'];
 }
 
 function consent_details(string $siteId): array
@@ -75,7 +76,7 @@ function consent_policy_url_valid(string $url): bool
 
 function consent_ready(array $settings): bool
 {
-    return $settings['operator_name'] !== '' && $settings['operator_address'] !== ''
+    return ($settings['cookie_enabled'] ?? true) && $settings['operator_name'] !== '' && $settings['operator_address'] !== ''
         && filter_var($settings['operator_email'], FILTER_VALIDATE_EMAIL) !== false
         && consent_policy_url_valid($settings['policy_url'])
         && preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) === 1;
@@ -117,12 +118,17 @@ function clean_consent_details(array $input, array $settings, ?array $fallback, 
     if ($settings['ym_counter'] !== '' && preg_match('/^[1-9][0-9]{0,14}$/', $settings['ym_counter']) !== 1) {
         $errors[] = 'ID Метрики — число без ведущего нуля, до 15 цифр';
     }
-    if ($settings['enabled']) $errors = array_merge($errors, consent_missing($settings));
+    if (array_key_exists('cookie_enabled', $input)) $settings['cookie_enabled'] = input_bool($input['cookie_enabled']);
+    if (array_key_exists('reject_action', $input)) {
+        if (!in_array($input['reject_action'], ['close', 'slider'], true)) $errors[] = 'некорректное действие при отказе';
+        else $settings['reject_action'] = $input['reject_action'];
+    }
+    if ($settings['enabled'] && $settings['cookie_enabled']) $errors = array_merge($errors, consent_missing($settings));
     if ($errors) throw new InvalidArgumentException('Slide Cookie не сохранён: ' . implode('; ', array_unique($errors)));
     if ($fallback !== null) {
         // Toggling the banner is not a change of terms: visitors keep their choice.
         $material = ['policy_url', 'ym_counter', 'block_metrika', 'operator_name',
-            'operator_address', 'operator_email', 'consent_text', 'consent_days', 'strict_preconsent'];
+            'operator_address', 'operator_email', 'consent_text', 'consent_days', 'strict_preconsent', 'cookie_enabled', 'reject_action'];
         foreach ($material as $key) {
             if (($settings[$key] ?? null) !== ($fallback[$key] ?? consent_defaults()[$key] ?? null)) {
                 $settings['version'] = max($settings['version'], $fallback['version'] + 1);

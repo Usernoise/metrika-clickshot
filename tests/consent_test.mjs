@@ -71,6 +71,28 @@ try {
   assert.equal((await request('/api/consent.php?site=second_site',{action:'denied',method:'link',receipt:grant.receipt},{Origin:'https://second.example'})).status,200);
   assert.equal((await consent({action:'verify',receipt:grant.receipt})).data.valid,true,'Second site cannot revoke the first site receipt');
   assert.equal((await request('/api/consent.php?site=consent_site',first,{Origin:'https://second.example'})).status,403);
+  // New mode fields persist through partial updates and never permit cookie grants in captcha mode.
+  const captchaSettings = {...settings,cookie_enabled:false,reject_action:'slider'};
+  assert.equal((await request('/api/sites.php',{id:'captcha_site',name:'Captcha',domains:['captcha.example'],slide_cookie:captchaSettings},{Authorization:auth})).status,201);
+  const captchaUpdate = async value => {
+    const r = await fetch(base+'/api/sites.php',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:auth,Origin:base},body:JSON.stringify({id:'captcha_site',slide_cookie:value})});
+    return {status:r.status,data:await r.json()};
+  };
+  const captchaDoc = JSON.parse(php("echo json_encode(consent_document(site_by_id('captcha_site')['slide_cookie']));"));
+  assert.equal((await request('/api/consent.php?site=captcha_site',{action:'granted',method:'slider',version:captchaDoc.version,hash:captchaDoc.hash},{Origin:'https://captcha.example'})).status,400);
+  let captcha = await captchaUpdate({accent_color:'#ff9900'});
+  assert.equal(captcha.data.slide_cookie.cookie_enabled,false);
+  assert.equal(captcha.data.slide_cookie.reject_action,'slider');
+  assert.equal(captcha.data.slide_cookie.version,captchaDoc.version);
+  assert.equal((await captchaUpdate({reject_action:'invalid'})).status,400);
+  captcha = await captchaUpdate({cookie_enabled:true});
+  assert.equal(captcha.status,200);
+  assert.equal(captcha.data.slide_cookie.version,captchaDoc.version+1);
+  assert.equal(captcha.data.slide_cookie.operator_name,settings.operator_name);
+  captcha = await captchaUpdate({cookie_enabled:false});
+  assert.equal(captcha.data.slide_cookie.version,captchaDoc.version+2);
+  assert.equal(captcha.data.slide_cookie.reject_action,'slider');
+
   const color = await update({accent_color:'#ff9900'});
   assert.equal(color.data.slide_cookie.version,doc.version,'Cosmetic changes preserve consent');
   assert.equal(evidence().hash,doc.hash);

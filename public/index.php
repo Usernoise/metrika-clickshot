@@ -209,23 +209,25 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 </div>
 <div class="app-tab-panel" data-tab-panel="cookie" role="tabpanel" hidden>
 <section class="panel" id="slide-cookie-panel">
-  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Согласие на аналитику, отказ и управление Яндекс.Метрикой.</div></div></div>
+  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Проверка слайдером и необязательное согласие на cookie.</div></div></div>
   <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a></p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Сдвиньте для согласия</span><span class="sc-preview-knob">→</span></div><div style="text-align:center;margin-top:14px;font-size:13px;line-height:1.6"><a href="#" style="color:#525252;text-decoration:underline;text-underline-offset:3px">Продолжить без аналитики</a></div></div></div></aside></div>
   <div class="cookie-config" id="slide-cookie-config" hidden>
-    <label>Ссылка на политику<input id="slide-policy-url" type="text" inputmode="url" maxlength="2048" placeholder="/privacy или https://site.ru/privacy"></label>
-    <label>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
-    <label>Владелец этого сайта — оператор ПД<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"><span class="slide-key-hint">Реквизиты применяются только к выбранному сайту.</span></label>
-    <label>Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
-    <label>Email для отзыва и обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
-    <label>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" step="1" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
-    <label style="grid-column:1 / -1">Дополнительные условия согласия<textarea id="slide-consent-text" rows="4" maxlength="3000" placeholder="При необходимости: условия обработки и сроки, принятые оператором. Основной текст формируется автоматически."></textarea></label>
+    <label class="collection-item" style="grid-column:1 / -1"><input type="checkbox" id="slide-cookie-consent-enabled" checked><span><strong>Включить функционал cookie</strong>Текст согласия, политика, выбор посетителя и управление Метрикой. Снимите галочку, чтобы оставить только проверку слайдером.</span></label>
+    <label data-cookie-option>При отказе от cookie<select id="slide-reject-action"><option value="close">Сразу продолжить на сайт</option><option value="slider">Пройти слайдер и продолжить без cookie</option></select><span class="slide-key-hint">Отказ не включает аналитику. Проверка слайдером не означает согласие.</span></label>
+    <label data-cookie-option>Ссылка на политику<input id="slide-policy-url" type="text" inputmode="url" maxlength="2048" placeholder="/privacy или https://site.ru/privacy"></label>
+    <label data-cookie-option>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
+    <label data-cookie-option>Владелец этого сайта — оператор ПД<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"><span class="slide-key-hint">Реквизиты применяются только к выбранному сайту.</span></label>
+    <label data-cookie-option>Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
+    <label data-cookie-option>Email для отзыва и обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
+    <label data-cookie-option>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" step="1" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
+    <label data-cookie-option style="grid-column:1 / -1">Дополнительные условия согласия<textarea id="slide-consent-text" rows="4" maxlength="3000" placeholder="При необходимости: условия обработки и сроки, принятые оператором. Основной текст формируется автоматически."></textarea></label>
     <label>Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
     <label>Значение параметра<input id="slide-key" maxlength="128" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
     <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
     <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
     <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
-    <label class="collection-item"><input type="checkbox" id="slide-block-metrika" checked disabled><span><strong>Метрика только после согласия</strong>Включается после сохранения выбора. Вебвизор и карта кликов выключены.</span></label>
-    <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить согласие заново</strong>Создаёт новую версию ключа согласия.</span></label>
+    <label data-cookie-option class="collection-item"><input type="checkbox" id="slide-block-metrika" checked disabled><span><strong>Метрика только после согласия</strong>Включается после сохранения выбора. Вебвизор и карта кликов выключены.</span></label>
+    <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить заново</strong>Сбрасывает сохранённое согласие и прохождение проверки.</span></label>
   </div></div>
   <div class="collection-footer" style="padding:0 16px 16px"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить Slide Cookie</button></div>
 </section>
@@ -478,6 +480,16 @@ function updateSlidePreview(){
   const preview = document.querySelector('#slide-preview');
   if(!preview) return;
   const enabled = document.querySelector('#slide-cookie-enabled').checked;
+  const cookies = document.querySelector('#slide-cookie-consent-enabled').checked;
+  document.querySelectorAll('[data-cookie-option]').forEach(el => { el.hidden = !cookies; });
+  document.querySelector('.cookie-note').hidden = !cookies;
+  const dialog = preview.querySelector('.sc-preview-dialog');
+  dialog.querySelector('h3').textContent = cookies ? 'Сайт использует cookie' : 'Проверка перед продолжением';
+  dialog.querySelector('p').innerHTML = cookies
+    ? 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. ' + (document.querySelector('#slide-reject-action').value === 'slider' ? 'При отказе потребуется проверка слайдером. После проверки доступ продолжится без сбора cookie для аналитики.' : 'Отказ не ограничивает доступ к сайту.') + '<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a>'
+    : 'Проведите слайдер вправо для продолжения.';
+  dialog.querySelector('.sc-preview-track-text').textContent = cookies ? 'Сдвиньте для согласия' : 'Сдвиньте для продолжения';
+  dialog.lastElementChild.hidden = !cookies;
   preview.classList.toggle('is-off', !enabled);
   preview.style.setProperty('--sc-accent', document.querySelector('#slide-accent-color').value || '#C5FF1A');
   preview.style.setProperty('--sc-dark', document.querySelector('#slide-dark-color').value || '#0A0A0A');
@@ -501,6 +513,8 @@ function syncSlideParamField(){
 function renderSlideCookieSettings(){
   const c = currentSlideCookie();
   document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
+  document.querySelector('#slide-cookie-consent-enabled').checked = c.cookie_enabled !== false;
+  document.querySelector('#slide-reject-action').value = c.reject_action || 'close';
   document.querySelector('#slide-policy-url').value = c.policy_url || '';
   for (const name of ['operator-name','operator-address','operator-email','consent-text']) document.querySelector('#slide-' + name).value = c[name.replaceAll('-', '_')] || '';
   document.querySelector('#slide-consent-days').value = c.consent_days || 180;
@@ -514,7 +528,7 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
   document.querySelector('#slide-cookie-status').classList.remove('is-error');
-  document.querySelector('#slide-cookie-status').textContent = c.enabled ? ((c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
+  document.querySelector('#slide-cookie-status').textContent = c.enabled ? (c.cookie_enabled === false ? 'Только проверка слайдером. Метрика выключена.' : (c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
   syncSlideParamField();
   updateSlidePreview();
 }
@@ -679,6 +693,9 @@ document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) =
   updateSnippet();
 });
 
+document.querySelector('#slide-cookie-consent-enabled').addEventListener('change', updateSlidePreview);
+document.querySelector('#slide-reject-action').addEventListener('change', updateSlidePreview);
+
 document.querySelector('#slide-param').addEventListener('change', syncSlideParamField);
 
 ['#slide-accent-color', '#slide-dark-color', '#slide-accent-text-color'].forEach(selector => {
@@ -692,6 +709,8 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
   const status = document.querySelector('#slide-cookie-status');
   const slide_cookie = {
     enabled: document.querySelector('#slide-cookie-enabled').checked,
+    cookie_enabled: document.querySelector('#slide-cookie-consent-enabled').checked,
+    reject_action: document.querySelector('#slide-reject-action').value,
     policy_url: document.querySelector('#slide-policy-url').value.trim(),
     param: document.querySelector('#slide-param').value.trim() || 'always',
     key: document.querySelector('#slide-key').value.trim(),
@@ -708,6 +727,10 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
     accent_text_color: document.querySelector('#slide-accent-text-color').value,
     reset_consent: document.querySelector('#slide-reset-consent').checked
   };
+  // Ignore unfinished edits in the hidden cookie section; keep its saved settings.
+  if (!slide_cookie.cookie_enabled) {
+    for (const key of ['policy_url', 'ym_counter', 'operator_name', 'operator_address', 'operator_email', 'consent_text', 'consent_days', 'reject_action']) delete slide_cookie[key];
+  }
   button.disabled = true; status.textContent = 'Сохраняем…'; status.classList.remove('is-error');
   try {
     const r = await fetch('/api/sites.php', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id:site, slide_cookie})});

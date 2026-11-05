@@ -26,6 +26,8 @@ echo 'window.__clickShotBootstrap=' . json_encode(
 
 if ($site['slide_cookie']['enabled']) {
     echo 'window.__clickShotSlideCookieConfig=' . json_encode([
+        'COOKIE_ENABLED' => $site['slide_cookie']['cookie_enabled'],
+        'REJECT_ACTION' => $site['slide_cookie']['reject_action'],
         'UTM_PARAM' => $site['slide_cookie']['param'],
         'UTM_KEY' => $site['slide_cookie']['key'],
         'YM_COUNTER' => $site['slide_cookie']['ym_counter'] !== '' ? (int)$site['slide_cookie']['ym_counter'] : null,
