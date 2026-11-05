@@ -8,6 +8,8 @@
     CONFIG.POLICY_URL = safeUrl(CONFIG.POLICY_URL);
     CONFIG.STORAGE_KEY = CONFIG.STORAGE_KEY || 'clickshot:cookie-choice';
     const cookieEnabled = CONFIG.COOKIE_ENABLED !== false;
+    // Unchecked: leave the site's own Metrika installation entirely independent.
+    const manageMetrika = CONFIG.BLOCK_METRIKA !== false;
     const challengeKey = CONFIG.STORAGE_KEY + ':challenge:' + (CONFIG.DOCUMENT?.version || 1) + ':' + (cookieEnabled ? 'refusal' : 'only');
     let challengePassed = false;
     try { challengePassed = sessionStorage.getItem(challengeKey) === 'passed'; } catch (_) {}
@@ -80,7 +82,7 @@
         else (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(name);
     }
     function startAnalytics() {
-        if (!allowed() || sdkStarted || !CONFIG.READY) return;
+        if (!manageMetrika || !allowed() || sdkStarted || !CONFIG.READY) return;
         unblockMetrika();
         sdkStarted = true;
         // Drop commands queued before opt-in, including legacy init options/goals.
@@ -123,6 +125,7 @@
         }
     }
     function stopAnalytics() {
+        if (!manageMetrika) return false;
         metrikaAllowed = false;
         const wasStarted = sdkStarted;
         sdkStarted = false;
@@ -244,6 +247,7 @@
     }
 
     function installMetrikaBlock() {
+        if (!manageMetrika) return;
         if (metrikaBlockInstalled) return;
         if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
 
@@ -288,9 +292,9 @@
         // ClickShot initializes its own counter; legacy snippets are not replayed.
     }
 
-    let metrikaAllowed = false;
+    let metrikaAllowed = !manageMetrika;
     installMetrikaBlock();
-    if (typeof window.ym !== 'function') {
+    if (manageMetrika && typeof window.ym !== 'function') {
         window.ym = function () {
             if (metrikaAllowed) (window.ym.a = window.ym.a || []).push(arguments);
         };
@@ -384,8 +388,9 @@
         // Заголовок
         const title = document.createElement('h2');
         title.id = titleId;
-        title.textContent = challenge ? 'Проверка перед продолжением' : 'Сайт использует cookie';
+        title.textContent = challenge ? (CONFIG.CHALLENGE_TITLE || 'Вы не робот?') : 'Сайт использует cookie';
         title.style.cssText = `
+            overflow-wrap: anywhere !important;
             margin: 0 0 10px 0 !important;
             padding: 0 !important;
             font-size: 22px !important;
@@ -406,7 +411,10 @@
             ? (CONFIG.DOCUMENT?.operator ? CONFIG.DOCUMENT.operator + ' использует Яндекс.Метрику для анализа посещаемости. ' : '')
                 + 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. ' + (CONFIG.REJECT_ACTION === 'slider' ? 'При отказе потребуется проверка слайдером. После неё сайт будет доступен без cookie для аналитики.' : 'Отказ не ограничивает доступ к сайту.')
             : 'Разрешение аналитики временно недоступно. Вы можете продолжить пользоваться сайтом без неё.';
-        if (challenge) description.textContent = 'Проведите слайдер вправо для продолжения.' + (cookieEnabled ? ' Доступ к сайту будет продолжен без сбора cookie для аналитики. Яндекс.Метрика останется выключенной.' : '');
+        if (!manageMetrika) description.textContent = 'Метрика на сайте работает независимо от вашего выбора в этом окне. Проведите слайдер вправо, чтобы сохранить согласие. Отказ сохранится, но не остановит отдельно установленный счётчик.';
+        if (challenge) description.textContent = 'Проведите слайдер вправо для продолжения.' + (cookieEnabled
+            ? (manageMetrika ? ' Ваш отказ от cookie для аналитики сохранён. Доступ к сайту будет продолжен без сбора cookie для аналитики. Яндекс.Метрика останется выключенной.'
+                : ' Ваш отказ сохранён. Отдельно установленная Метрика работает независимо от этой проверки.') : '');
         const documents = document.createElement('div');
         documents.style.cssText = 'margin:0 0 18px!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
         const consentContent = document.createElement('div');
@@ -572,7 +580,7 @@
         container.appendChild(liveRegion);
         const refusal = document.createElement('div');
         refusal.style.cssText = 'margin:16px 0 0!important;text-align:center!important;font:13px/1.6 system-ui,sans-serif!important;';
-        const rejectLink = makeLink(allowed() ? 'Отозвать согласие' : 'Продолжить без аналитики', () => { reject(); });
+        const rejectLink = makeLink(allowed() ? 'Отозвать согласие' : (manageMetrika ? 'Продолжить без аналитики' : 'Не принимать'), () => { reject(); });
         refusal.appendChild(rejectLink);
         if (!challenge) container.appendChild(refusal);
         const errorMessage = document.createElement('p');

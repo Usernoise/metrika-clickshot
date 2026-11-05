@@ -1,5 +1,5 @@
 // Real browser, temporary database: every Slide Cookie field must survive save + reload.
-import {mkdtempSync} from 'node:fs';
+import {mkdtempSync, mkdirSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {spawn, execFileSync} from 'node:child_process';
@@ -51,7 +51,7 @@ try {
   await open();
   await page.locator('#slide-cookie-enabled').check();
   const values = {
-    '#slide-policy-url':'example.test/privacy', '#slide-ym-counter':'87 654 321',
+    '#slide-challenge-title':'Подтвердите, что вы человек', '#slide-policy-url':'example.test/privacy', '#slide-ym-counter':'87 654 321',
     '#slide-operator-name':'ООО «Тест»', '#slide-operator-address':'Москва, ул. Тестовая, 1',
     '#slide-operator-email':'privacy@example.test', '#slide-consent-days':'90',
     '#slide-consent-text':'Дополнительное условие.\nВторая строка.', '#slide-key':'google',
@@ -63,13 +63,44 @@ try {
   await page.locator('#slide-cookie-status').filter({hasText:'Сохранено'}).waitFor();
 
   await open();
-  const saved = await page.evaluate(()=>Object.fromEntries(['policy-url','ym-counter','operator-name','operator-address','operator-email','consent-days','consent-text','key','param','accent-color']
+  const saved = await page.evaluate(()=>Object.fromEntries(['challenge-title','policy-url','ym-counter','operator-name','operator-address','operator-email','consent-days','consent-text','key','param','accent-color']
     .map(name=>[name,document.querySelector('#slide-'+name).value]).concat([['enabled',document.querySelector('#slide-cookie-enabled').checked]])));
   assert.deepEqual(saved,{
-    'policy-url':'https://example.test/privacy','ym-counter':'87654321','operator-name':'ООО «Тест»',
+    'challenge-title':'Подтвердите, что вы человек','policy-url':'https://example.test/privacy','ym-counter':'87654321','operator-name':'ООО «Тест»',
     'operator-address':'Москва, ул. Тестовая, 1','operator-email':'privacy@example.test','consent-days':'90',
     'consent-text':'Дополнительное условие.\nВторая строка.','key':'google','param':'utm_source','accent-color':'#112233',enabled:true,
   },'Every field survives save and reload');
+
+  // Both themes must keep native checkbox dimensions and fit laptop/tablet/mobile widths.
+  const layoutOutput = join(root,'output/playwright/slide-layout');
+  mkdirSync(layoutOutput,{recursive:true});
+  for (const theme of ['classic','neu']) {
+    await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
+    for (const width of [1440,1024,375]) {
+      await page.setViewportSize({width,height:900});
+      const dimensions = await page.locator('#slide-cookie-panel').evaluate(panel=>({
+        overflow:document.documentElement.scrollWidth>innerWidth,
+        checkboxes:[...panel.querySelectorAll('input[type=checkbox]')].filter(el=>el.getClientRects().length).map(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,mask:getComputedStyle(el).maskImage})),
+        controls:[...panel.querySelectorAll('.sc-field input,.sc-field select')].filter(el=>el.getClientRects().length).map(el=>el.getBoundingClientRect().height)
+      }));
+      assert.equal(dimensions.overflow,false,`${theme} ${width}: horizontal overflow`);
+      assert.ok(dimensions.checkboxes.every(d=>d.width>=16 && d.width<=24 && d.height>=16 && d.height<=24 && d.mask==='none'),`${theme} ${width}: stretched checkbox`);
+      assert.ok(dimensions.controls.every(height=>height===44),`${theme} ${width}: inconsistent control heights`);
+      if(width!==1024) await page.locator('#slide-cookie-panel').screenshot({path:join(layoutOutput,`${theme}-${width}.png`)});
+    }
+  }
+  await page.setViewportSize({width:1440,height:900});
+  await page.evaluate(()=>document.documentElement.dataset.theme='neu');
+
+  assert.equal(await page.locator('#slide-block-metrika').isEnabled(),true);
+  await page.locator('#slide-block-metrika').uncheck();
+  await page.locator('#save-slide-cookie').click();
+  await page.locator('#slide-cookie-status').filter({hasText:'Сохранено'}).waitFor();
+  await open();
+  assert.equal(await page.locator('#slide-block-metrika').isChecked(),false);
+  assert.ok((await page.locator('#slide-metrika-warning').innerText()).includes('нарушает'));
+  assert.equal((await put({})).data.slide_cookie.block_metrika,false);
+  await page.locator('#slide-cookie-panel').screenshot({path:join(layoutOutput,'neu-independent.png')});
 
   const before = (await put({})).data.slide_cookie.version;
   await put({enabled:false});
@@ -84,6 +115,8 @@ try {
   // Hidden consent fields must not prevent enabling the standalone challenge.
   await page.locator('#slide-policy-url').fill('./unfinished-policy');
   await page.locator('#slide-cookie-consent-enabled').uncheck();
+  assert.equal(await page.locator('#slide-block-metrika').isVisible(),true);
+  assert.equal(await page.locator('.sc-preview-dialog h3').innerText(),'Подтвердите, что вы человек');
   const standaloneResponse = page.waitForResponse(r=>r.url().endsWith('/api/sites.php') && r.request().method()==='PUT');
   await page.locator('#save-slide-cookie').click();
   const standalone = await standaloneResponse;
@@ -91,6 +124,11 @@ try {
   await status.filter({hasText:'Сохранено'}).waitFor();
   await open();
   assert.equal(await page.locator('#slide-cookie-consent-enabled').isChecked(),false);
+  await page.locator('#slide-cookie-panel').screenshot({path:join(layoutOutput,'neu-slider-only.png')});
+  await page.locator('#slide-cookie-enabled').uncheck();
+  assert.equal(await page.locator('#slide-cookie-config').isVisible(),false);
+  assert.equal(await page.locator('#save-slide-cookie').isVisible(),true);
+  await page.locator('#slide-cookie-enabled').check();
   await page.locator('#slide-cookie-consent-enabled').check();
   assert.equal(await page.locator('#slide-policy-url').inputValue(),'https://example.test/privacy','Disabling cookies preserves the last saved consent settings');
   assert.equal(await page.locator('#slide-consent-days').inputValue(),'90');
@@ -100,7 +138,7 @@ try {
   await page.locator('#save-slide-cookie').click();
   await status.filter({hasText:'HTTP 502'}).waitFor();
   assert.equal(errors.length,0,errors.join('\n'));
-  console.log('PASS Slide Cookie form: all errors at once, every field survives reload, toggle keeps version, non-JSON errors readable');
+  console.log('PASS Slide Cookie form: save/reload, error handling, mode toggles and layout in both themes at 1440/1024/375px');
 } finally {
   await browser?.close();
   server.kill('SIGTERM');

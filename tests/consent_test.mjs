@@ -35,7 +35,8 @@ try {
   assert.equal((await request('/api/sites.php',{id:'consent_site',name:'Test',domains:['consent.example']},{Authorization:auth})).status,201);
   assert.equal((await update({enabled:true,policy_url:'#'})).status,400);
   assert.equal((await update({...settings,operator_email:''})).status,400);
-  assert.equal((await update({...settings,block_metrika:false})).status,400);
+  assert.equal((await update({...settings,block_metrika:false})).status,200);
+  assert.equal((await update({block_metrika:true})).status,200);
   assert.equal((await update(settings)).status,200);
   const doc = evidence();
   const first = {action:'granted',method:'slider',version:doc.version,hash:doc.hash};
@@ -84,6 +85,14 @@ try {
   assert.equal(captcha.data.slide_cookie.cookie_enabled,false);
   assert.equal(captcha.data.slide_cookie.reject_action,'slider');
   assert.equal(captcha.data.slide_cookie.version,captchaDoc.version);
+  assert.equal(captcha.data.slide_cookie.challenge_title,'Вы не робот?');
+  captcha = await captchaUpdate({challenge_title:'Свой заголовок'});
+  assert.equal(captcha.data.slide_cookie.challenge_title,'Свой заголовок');
+  assert.equal(captcha.data.slide_cookie.version,captchaDoc.version,'Changing the captcha title preserves consent');
+  assert.equal((await captchaUpdate({})).data.slide_cookie.challenge_title,'Свой заголовок');
+  assert.equal((await captchaUpdate({challenge_title:'я'.repeat(121)})).status,400);
+  assert.equal((await captchaUpdate({challenge_title:[]})).status,400);
+  assert.equal((await captchaUpdate({challenge_title:'   '})).data.slide_cookie.challenge_title,'Вы не робот?');
   assert.equal((await captchaUpdate({reject_action:'invalid'})).status,400);
   captcha = await captchaUpdate({cookie_enabled:true});
   assert.equal(captcha.status,200);
@@ -92,6 +101,18 @@ try {
   captcha = await captchaUpdate({cookie_enabled:false});
   assert.equal(captcha.data.slide_cookie.version,captchaDoc.version+2);
   assert.equal(captcha.data.slide_cookie.reject_action,'slider');
+
+  const unmanagedSettings = {...settings,block_metrika:false};
+  assert.equal((await request('/api/sites.php',{id:'unmanaged_site',name:'Independent Metrika',domains:['unmanaged.example'],slide_cookie:unmanagedSettings},{Authorization:auth})).status,201);
+  const unmanagedDoc = JSON.parse(php("echo json_encode(consent_document(site_by_id('unmanaged_site')['slide_cookie']));"));
+  assert.ok(unmanagedDoc.text.includes('не останавливает отдельно установленную Метрику'));
+  assert.equal(unmanagedDoc.text.includes('После отзыва новые события аналитики не отправляются'),false);
+  const unmanagedConsent = body => request('/api/consent.php?site=unmanaged_site',body,{Origin:'https://unmanaged.example'});
+  const unmanagedGrant = await unmanagedConsent({action:'granted',method:'slider',version:unmanagedDoc.version,hash:unmanagedDoc.hash});
+  assert.equal(unmanagedGrant.status,200);
+  assert.equal((await unmanagedConsent({action:'verify',receipt:unmanagedGrant.data.choice.receipt})).data.valid,true);
+  assert.equal((await unmanagedConsent({action:'withdrawn',method:'link',receipt:unmanagedGrant.data.choice.receipt})).status,200);
+  assert.equal((await unmanagedConsent({action:'verify',receipt:unmanagedGrant.data.choice.receipt})).data.valid,false);
 
   const color = await update({accent_color:'#ff9900'});
   assert.equal(color.data.slide_cookie.version,doc.version,'Cosmetic changes preserve consent');

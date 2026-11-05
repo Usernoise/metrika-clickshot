@@ -19,7 +19,7 @@ execFileSync('php',[join(root,'bin/database.php'),'migrate'],{env});
 php(`foreach (['browser_site','browser_conditional','browser_other'] as $id) {
   db()->prepare('INSERT INTO sites VALUES(?,?,?, ?,1)')->execute([$id,$id,'["127.0.0.1"]',date(DATE_ATOM)]);
   db()->prepare("INSERT INTO site_collection_settings(site_id,slide_cookie_enabled,slide_cookie_policy_url,slide_cookie_param,slide_cookie_key,slide_cookie_ym_counter,updated_at) VALUES(?,1,'/privacy',?,?,'12345',?)")
-    ->execute([$id,$id==='browser_conditional'?'utm_source':'always',$id==='browser_conditional'?'ad':'',date(DATE_ATOM)]);
+    ->execute([$id,$id==='browser_conditional'?'utm_source':'always',$id==='browser_conditional'?'rsya':'',date(DATE_ATOM)]);
   save_consent_details($id,array_replace(consent_defaults(),['operator_name'=>$id==='browser_other'?'Другой владелец сайта':'Тестовый оператор','operator_address'=>'Тестовый адрес','operator_email'=>'privacy@example.test']));
 }`);
 const reservation = net.createServer();
@@ -203,6 +203,9 @@ try {
   assert.equal(test.external.length,0);
   await open(test.page);
   await test.page.getByRole('dialog').waitFor();
+  await ready(test.page,'?mode=conditional&utm_source=rsya');
+  await test.page.getByRole('heading',{name:'Сайт использует cookie'}).waitFor();
+  assert.equal(await test.page.getByRole('link',{name:'Согласие на аналитику'}).count(),1,'A matching UTM must retain cookie mode in a fresh browser');
   record('UTM mismatch does not authorize analytics; settings link remains accessible');
   await test.context.close();
 
@@ -275,11 +278,11 @@ try {
   test = await setup();
   await ready(test.page);
   await test.page.getByRole('link',{name:'Продолжить без аналитики'}).click();
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   assert.ok((await test.page.getByRole('dialog').innerText()).includes('без сбора cookie'));
   assert.equal(await test.page.locator('#client-action').evaluate(el=>el.closest('[inert]') !== null),true);
   await test.page.reload();
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   assert.equal(await test.page.getByRole('dialog').getByRole('link').count(),0);
   await test.page.getByRole('slider').press('Enter');
   await test.page.getByRole('dialog').waitFor({state:'detached'});
@@ -296,7 +299,7 @@ try {
   test = await setup({offlineConsent:true,noStorage:true,mobile:true});
   await ready(test.page);
   await test.page.getByRole('link',{name:'Продолжить без аналитики'}).click();
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   assert.equal(await test.page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   await test.page.getByRole('slider').press('Enter');
   await test.page.getByRole('dialog').waitFor({state:'detached'});
@@ -304,7 +307,7 @@ try {
   assert.equal(test.external.length,0);
   await test.page.reload();
   await test.page.getByRole('link',{name:'Продолжить без аналитики'}).click();
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   assert.equal(test.errors.length,0,test.errors.join('\n'));
   record('Refusal challenge works on mobile with consent service and browser storage unavailable');
   await test.context.close();
@@ -315,7 +318,7 @@ try {
   await test.page.getByRole('slider').press('Enter');
   await grantRequest;
   await test.page.getByRole('link',{name:'Продолжить без аналитики'}).click();
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   await test.page.waitForTimeout(800);
   assert.equal(await test.page.locator('#client-action').evaluate(el=>el.closest('[inert]') !== null),true);
   await test.page.getByRole('slider').press('Enter');
@@ -324,6 +327,21 @@ try {
   assert.equal(test.external.length,0);
   assert.equal(test.errors.length,0,test.errors.join('\n'));
   record('Delayed acceptance cannot close or authorize the refusal challenge');
+  await test.context.close();
+
+  // Reproduce a UTM-only visit after a saved refusal, keeping cookie mode enabled.
+  php("$s=site_by_id('browser_conditional')['slide_cookie'];$s['reject_action']='slider';save_consent_details('browser_conditional',$s);");
+  test = await setup();
+  await ready(test.page,'?mode=conditional&utm_source=rsya');
+  await test.page.getByRole('heading',{name:'Сайт использует cookie'}).waitFor();
+  await test.page.getByRole('link',{name:'Продолжить без аналитики'}).click();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
+  await ready(test.page,'?mode=conditional&utm_source=rsya');
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
+  assert.equal(await test.page.getByRole('dialog').getByRole('link').count(),0);
+  assert.ok((await test.page.getByRole('dialog').innerText()).includes('без сбора cookie'));
+  assert.equal(test.errors.length,0,test.errors.join('\n'));
+  record('A matching UTM shows cookie mode for a fresh visitor and only the continuation slider after a saved refusal');
   await test.context.close();
 
   // The standalone slider needs no operator, policy or Metrika settings.
@@ -360,12 +378,71 @@ try {
   const reset = await test.context.request.put(origin+'/api/sites.php',{data:{id:'browser_site',slide_cookie:{reset_consent:true}}});
   assert.equal(reset.status(),200,await reset.text());
   await ready(test.page);
-  await test.page.getByRole('heading',{name:'Проверка перед продолжением'}).waitFor();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
   await test.page.getByRole('slider').press('End');
   await test.page.getByRole('slider').press('Enter');
   await test.page.getByRole('dialog').waitFor({state:'detached'});
   assert.equal(await test.page.evaluate(()=>window.ClickShotConsent.getState().analytics),false);
   record('Standalone slider saves without cookie details, supports dragging, persists per tab and never enables Metrika');
+  await test.context.close();
+
+  // With blocking disabled, leave the site's own tag, queue and storage alone.
+  test = await setup({admin:true});
+  const independent = await test.context.request.put(origin+'/api/sites.php',{data:{id:'browser_site',slide_cookie:{cookie_enabled:true,block_metrika:false,operator_name:'Тестовый оператор',operator_address:'Тестовый адрес',operator_email:'privacy@example.test',policy_url:'/privacy',ym_counter:'12345',reject_action:'slider'}}});
+  assert.equal(independent.status(),200,await independent.text());
+  await ready(test.page,'?mode=attribute');
+  await test.page.waitForFunction(()=>document.cookie.includes('_ym_uid'));
+  assert.equal(test.external.length,1,'The independently installed tag can load before consent');
+  assert.ok(await test.page.evaluate(()=>window.fixtureYandexCalls.some(args=>args[1]==='reachGoal' && args[2]==='fixture_goal')),'Existing queue must be preserved');
+  assert.equal(await test.page.locator('script[data-clickshot-metrika]').count(),0);
+  await test.page.getByRole('link',{name:'Не принимать',exact:true}).click();
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
+  assert.equal((await test.page.getByRole('dialog').innerText()).includes('без сбора cookie'),false);
+  assert.ok(await test.page.evaluate(()=>document.cookie.includes('_ym_uid')),'Refusal must not delete independently managed cookie storage');
+  await test.page.getByRole('slider').press('Enter');
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  await open(test.page);
+  await grant(test.page);
+  assert.equal(test.external.length,1,'Consent must not inject a second Metrika tag');
+  await open(test.page);
+  await test.page.getByRole('link',{name:'Отозвать согласие'}).click();
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.ok(await test.page.evaluate(()=>document.cookie.includes('_ym_uid')));
+  assert.equal(await test.page.evaluate(()=>window.fixtureYandexCalls.some(args=>args[1]==='destruct')),false);
+  assert.equal(test.errors.length,0,test.errors.join('\n'));
+  record('Unchecked Metrika blocking preserves external tags, queues and cookies before consent, after refusal and withdrawal');
+  await test.context.close();
+
+  test = await setup();
+  php("$s=site_by_id('browser_site')['slide_cookie'];$s['cookie_enabled']=false;save_consent_details('browser_site',$s);");
+  await ready(test.page,'?mode=attribute');
+  await test.page.getByRole('heading',{name:'Вы не робот?'}).waitFor();
+  await test.page.waitForFunction(()=>document.cookie.includes('_ym_uid'));
+  assert.equal(test.external.length,1);
+  await test.page.getByRole('slider').press('Enter');
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.equal(await test.page.evaluate(()=>window.ClickShotConsent.getState().analytics),false,'Standalone challenge must not grant consent');
+  assert.equal(test.external.length,1);
+  assert.equal(test.errors.length,0,test.errors.join('\n'));
+  record('Unchecked blocking also allows an independent Metrika installation in standalone captcha mode');
+  await test.context.close();
+
+  test = await setup({admin:true});
+  const customTitle = 'Проверка «Человек?» <img src=x onerror=alert(1)>';
+  const custom = await test.context.request.put(origin+'/api/sites.php',{data:{id:'browser_site',slide_cookie:{challenge_title:customTitle,cookie_enabled:false,reset_consent:true}}});
+  assert.equal(custom.status(),200,await custom.text());
+  await ready(test.page);
+  await test.page.getByRole('heading',{name:customTitle,exact:true}).waitFor();
+  assert.equal(await test.page.getByRole('dialog').locator('img').count(),0,'Custom titles render as plain text');
+  const withCookie = await test.context.request.put(origin+'/api/sites.php',{data:{id:'browser_site',slide_cookie:{cookie_enabled:true,reset_consent:true}}});
+  assert.equal(withCookie.status(),200,await withCookie.text());
+  await ready(test.page);
+  await test.page.getByRole('heading',{name:'Сайт использует cookie'}).waitFor();
+  await test.page.getByRole('link',{name:'Не принимать',exact:true}).click();
+  await test.page.getByRole('heading',{name:customTitle,exact:true}).waitFor();
+  assert.equal(await test.page.getByRole('dialog').locator('img').count(),0);
+  assert.equal(test.errors.length,0,test.errors.join('\n'));
+  record('Custom captcha title persists and renders safely in standalone and refusal challenges');
   await test.context.close();
 
   writeFileSync(join(output,'results.json'),JSON.stringify(results,null,2));

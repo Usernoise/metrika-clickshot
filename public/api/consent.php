@@ -49,14 +49,14 @@ try {
     if ($action === 'verify') {
         $valid = $prior && $prior['decision'] === 'granted' && $prior['revoked_at'] === null
             && (int)$prior['expires_at'] > $now && hash_equals($document['hash'], $prior['document_hash'])
-            && consent_ready($settings) && $settings['block_metrika'];
+            && consent_ready($settings);
         $pdo->commit();
         respond_json(200, ['ok' => true, 'valid' => (bool)$valid]);
     }
     $method = input_string($input['method'] ?? '', 'method', 20);
     if (!in_array($method, ['slider', 'keyboard', 'link'], true)) throw new InvalidArgumentException('Некорректный способ выбора');
     if ($action === 'granted') {
-        if (!consent_ready($settings) || !$settings['block_metrika']) throw new InvalidArgumentException('Настройки согласия не заполнены');
+        if (!consent_ready($settings)) throw new InvalidArgumentException('Настройки согласия не заполнены');
         if (($input['version'] ?? null) !== $document['version'] || ($input['hash'] ?? '') !== $document['hash']) {
             $pdo->rollBack();
             respond_json(409, ['ok' => false, 'error' => 'Условия изменились. Обновите страницу перед согласием.']);

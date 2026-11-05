@@ -44,7 +44,7 @@ function consent_defaults(): array
 {
     return ['operator_name' => '', 'operator_address' => '', 'operator_email' => '',
         'consent_text' => '', 'consent_days' => 180, 'strict_preconsent' => true,
-        'cookie_enabled' => true, 'reject_action' => 'close'];
+        'cookie_enabled' => true, 'reject_action' => 'close', 'challenge_title' => 'Вы не робот?'];
 }
 
 function consent_details(string $siteId): array
@@ -90,20 +90,20 @@ function consent_missing(array $settings): array
     if (filter_var($settings['operator_email'], FILTER_VALIDATE_EMAIL) === false) $missing[] = 'укажите корректный email (латиницей)';
     if ($settings['policy_url'] === '') $missing[] = 'укажите ссылку на политику';
     if ($settings['ym_counter'] === '') $missing[] = 'укажите ID Метрики';
-    if (!$settings['block_metrika']) $missing[] = 'включите блокировку Метрики до согласия';
     return $missing;
 }
 
 function clean_consent_details(array $input, array $settings, ?array $fallback, array $errors = []): array
 {
     $settings = array_replace(consent_defaults(), $settings);
-    $labels = ['operator_name' => 'оператор', 'operator_address' => 'адрес', 'operator_email' => 'email', 'consent_text' => 'дополнительные условия'];
-    foreach (['operator_name' => 300, 'operator_address' => 500, 'operator_email' => 254, 'consent_text' => 3000] as $key => $limit) {
+    $labels = ['operator_name' => 'оператор', 'operator_address' => 'адрес', 'operator_email' => 'email', 'consent_text' => 'дополнительные условия', 'challenge_title' => 'заголовок проверки'];
+    foreach (['operator_name' => 300, 'operator_address' => 500, 'operator_email' => 254, 'consent_text' => 3000, 'challenge_title' => 120] as $key => $limit) {
         if (!array_key_exists($key, $input)) continue;
         $text = input_string($input[$key], $key, PHP_INT_MAX);
         if (mb_strlen($text) > $limit) $errors[] = "{$labels[$key]}: не длиннее {$limit} символов";
         else $settings[$key] = $text;
     }
+    if ($settings['challenge_title'] === '') $settings['challenge_title'] = consent_defaults()['challenge_title'];
     if (array_key_exists('consent_days', $input)) {
         if (!is_int($input['consent_days']) || $input['consent_days'] < 1 || $input['consent_days'] > 365) {
             $errors[] = 'срок согласия — целое число дней от 1 до 365';
@@ -153,14 +153,19 @@ function consent_document(array $settings): array
     $address = $settings['operator_address'];
     $email = $settings['operator_email'];
     $days = $settings['consent_days'];
+    $managed = $settings['block_metrika'];
     $text = "Согласие на обработку персональных данных для веб-аналитики\n\n"
         . "Перемещая слайдер до конца либо нажимая Enter или пробел на слайдере, я свободно даю указанному ниже оператору согласие на следующую обработку.\n\nОператор: {$name}. Адрес: {$address}. Контакт: {$email}.\n\n"
         . "Цель: статистический анализ посещаемости и использования сайта с помощью Яндекс.Метрики, счётчик {$settings['ym_counter']}.\n"
         . "Данные: cookie-идентификаторы, IP-адрес, сведения о браузере и устройстве, время посещения, просмотренные страницы и события взаимодействия.\n"
-        . "Получатель данных аналитики: ООО «ЯНДЕКС», сервис Яндекс.Метрика. Вебвизор, карта кликов, ecommerce и отслеживание ссылок в управляемом подключении выключены.\n"
+        . "Получатель данных аналитики: ООО «ЯНДЕКС», сервис Яндекс.Метрика. "
+        . ($managed ? "Вебвизор, карта кликов, ecommerce и отслеживание ссылок в управляемом подключении выключены.\n"
+            : "Счётчик подключается владельцем сайта отдельно. ClickShot не управляет его запуском, остановкой, Вебвизором и картой кликов.\n")
         . "Операции: автоматизированные сбор, запись, систематизация, накопление, хранение, использование, передача указанному получателю, блокирование, удаление и уничтожение.\n"
         . "Согласие действует {$days} дней с момента предоставления, если не будет отозвано раньше. Сроки отдельных cookie описаны в политике оператора и документации сервиса.\n"
-        . "Отзыв: откройте ссылку «Настройки cookie» и выберите «Отозвать согласие» либо обратитесь по адресу {$email}. После отзыва новые события аналитики не отправляются; удаление ранее переданных данных рассматривается оператором отдельно.\n"
+        . "Отзыв: откройте ссылку «Настройки cookie» и выберите «Отозвать согласие» либо обратитесь по адресу {$email}. "
+        . ($managed ? "После отзыва новые события аналитики не отправляются; удаление ранее переданных данных рассматривается оператором отдельно.\n"
+            : "ClickShot сохраняет отказ и отзыв, но не останавливает отдельно установленную Метрику. Прекращение обработки и удаление ранее переданных данных обеспечивает оператор сайта.\n")
         . "Подтверждение выбора (решение, дата, редакция согласия и случайный номер подтверждения) сохраняется в отдельном журнале согласий этого сайта. IP-адрес и отпечаток устройства в журнал не записываются. Срок хранения подтверждения — " . app_config()['consent_retention_days'] . " дней.\n"
         . "Отказ от аналитики не препятствует использованию сайта. Это согласие не распространяется на рекламу, рассылки, обработку заявок и другие цели.\n";
     if ($settings['consent_text'] !== '') $text .= "\nДополнительные условия оператора:\n" . $settings['consent_text'] . "\n";

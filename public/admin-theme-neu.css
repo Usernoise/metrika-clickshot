@@ -1116,44 +1116,6 @@
   gap: 20px;
 }
 
-/* Пока конфигурация скрыта: слева переключатель и подсказка, справа превью. */
-[data-theme="neu"] #slide-cookie-panel:has(#slide-cookie-config[hidden]) {
-  --neu-left-col: calc((100% - 20px) / 2.15);
-}
-
-[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  grid-template-areas:
-    "toggle preview"
-    "note   preview";
-  align-items: start;
-}
-
-/* Сохранить — под тем же переключателем, а не в дальнем углу. */
-[data-theme="neu"] #slide-cookie-panel:has(#slide-cookie-config[hidden]) .collection-footer {
-  max-width: var(--neu-left-col);
-  padding: 0;
-  margin-top: 20px;
-}
-
-[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) > div {
-  display: contents;
-}
-
-[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .collection-item {
-  grid-area: toggle;
-}
-
-[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .cookie-note {
-  grid-area: note;
-  margin-top: 0;
-}
-
-[data-theme="neu"] .slide-grid:has(#slide-cookie-config[hidden]) .sc-preview {
-  grid-area: preview;
-  margin-top: 0;
-}
-
 /* Заголовок раздела уже есть в шапке страницы. */
 [data-theme="neu"] #slide-cookie-panel .panel-header h2 {
   display: none;

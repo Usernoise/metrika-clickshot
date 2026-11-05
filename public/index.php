@@ -17,6 +17,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Geologica:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Onest:wght@400;500;600&display=swap');
 :root{--ink:#0a0a0a;--muted:#737373;--line:#e5e5e5;--soft:#f5f5f5;--lime:#c5ff1a;--lime-soft:#f1ffcc;--danger:#b42318;--font:'Onest',sans-serif;--mono:'JetBrains Mono',monospace;--display:'Geologica',sans-serif}*{box-sizing:border-box}body.fc-app{margin:0;background:#fff;color:var(--ink);font:13px/1.5 var(--font)}button,input,select{font:inherit}button{cursor:pointer}.wrap{max-width:1280px;margin:auto;padding:0 32px}.app-nav{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.brand{display:flex;align-items:center;gap:10px;font:600 15px var(--display)}.logo{width:30px;height:30px;background:var(--ink);color:var(--lime);display:grid;place-items:center;border-radius:7px;font:500 10px var(--mono);letter-spacing:-.1em}.nav-tag,.eyebrow,.label{font:500 10px var(--mono);letter-spacing:.09em;text-transform:uppercase}.nav-tag{color:var(--muted)}header{padding:48px 0 26px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;background-image:radial-gradient(#e5e5e5 .75px,transparent .75px);background-size:14px 14px;background-position:0 14px}h1,h2{font-family:var(--display);letter-spacing:-.035em}h1{font-size:38px;line-height:1;margin:8px 0 10px}.eyebrow{display:flex;align-items:center;gap:8px;color:#404040}.eyebrow:before{content:'';width:6px;height:6px;border-radius:50%;background:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.35)}.muted{color:var(--muted);font-size:13px}.controls{display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap}.fc-input,select,input{border:1px solid #d4d4d4;border-radius:6px;background:#fff;padding:9px 10px;outline:none;min-height:36px}.fc-input:focus,select:focus,input:focus{border-color:var(--lime);box-shadow:0 0 0 3px rgba(197,255,26,.28)}#site{min-width:190px;font-weight:600}.fc-btn{border-radius:6px;padding:9px 12px;border:1px solid transparent;font-weight:500;min-height:36px;transition:.18s ease}.fc-btn:hover{transform:translateY(-1px)}.fc-btn-primary{background:var(--lime);border-color:var(--lime);color:#181b25}.fc-btn-outline{background:#fff;border-color:var(--line);color:#404040}.btn-delete{color:var(--danger);border-color:#f0c7c3;background:#fff}.main{padding:0 0 64px}.error{display:none;margin:0 0 16px;padding:11px 13px;border:1px solid #f0c7c3;border-radius:8px;background:#fff3f2;color:var(--danger);font:12px var(--mono)}.cards{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:16px}.card{padding:17px 18px;border-right:1px solid var(--line)}.card:last-child{border:0}.label{color:#737373}.value{font:600 30px/1 var(--display);margin-top:10px;letter-spacing:-.04em}.panel{border:1px solid var(--line);border-radius:12px;background:#fff;margin-bottom:16px;min-width:0}.panel-header{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border-bottom:1px solid var(--line);gap:12px}.panel-header h2,.panel h2{font-size:15px;margin:0}.panel-header .muted{font-size:11px}.chart-panel{padding-bottom:14px}.chart{margin:20px 16px 0;height:198px;display:flex;align-items:flex-end;gap:5px;border-bottom:1px solid #d4d4d4}.bar-wrap{flex:1;min-width:3px;height:100%;display:flex;align-items:flex-end;position:relative}.bar{width:100%;min-height:2px;background:#181b25;border-radius:3px 3px 0 0;transition:background .15s}.bar-wrap:hover .bar{background:var(--lime)}.bar-wrap:hover:after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 7px);transform:translateX(-50%);padding:5px 7px;background:#181b25;color:#fff;border-radius:4px;white-space:nowrap;font:10px var(--mono);z-index:3}.btn-group{border:0;border-bottom:2px solid transparent;background:transparent;color:#737373;padding:7px 8px;font:10px var(--mono);text-transform:uppercase}.btn-group.active{color:#0a0a0a;border-color:var(--lime)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid .panel{margin:0}.table-panel{overflow:hidden}.table-panel>h2{padding:14px 14px 6px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{padding:9px 14px;border-bottom:1px solid #ededed;text-align:left}tbody tr:last-child td{border-bottom:0}th{font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#737373}th.num,td.num{text-align:right}.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}.collection-panel{padding:16px}.settings-head{padding-bottom:12px;border-bottom:1px dashed var(--line);margin-bottom:12px}.collection-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.collection-item{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;gap:8px;cursor:pointer;background:#fff;transition:border-color .15s}.collection-item:hover{border-color:#a3a3a3}.collection-item input{min-height:auto;width:15px;height:15px;margin:2px 0 0;accent-color:#a7dc00}.collection-item strong{display:block;font-size:12px}.collection-item span span{display:block;margin-top:3px;color:#737373;font-size:10px;line-height:1.35}.collection-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}.collection-status{font-size:11px;color:var(--muted)}.slide-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;padding:16px}.cookie-config{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cookie-config label{display:grid;gap:4px;font:10px var(--mono);text-transform:uppercase;color:#525252}.cookie-config input{width:100%;padding:7px 8px;min-height:32px}.cookie-config .collection-item{font:12px var(--font);text-transform:none}.cookie-config[hidden]{display:none!important}.cookie-note{background:#fafafa;border-left:3px solid var(--lime);padding:10px 11px;color:#525252;font-size:11px}.site-form{display:grid;grid-template-columns:1fr 2fr auto;gap:8px;padding:14px}.snippet-wrap{padding:14px}.snippet{padding:13px;background:#181b25;color:#efffc7;border-radius:7px;font:11px/1.55 var(--mono);word-break:break-all}.snippet-actions{display:flex;justify-content:flex-end;margin-top:9px}.btn-copy{background:var(--lime);border:0;border-radius:6px;padding:8px 11px;color:#181b25;font-weight:500}.btn-copy.copied{background:#c5ff1a}.section-title{display:flex;justify-content:space-between;align-items:center;margin:32px 0 12px}.section-title h2{font-size:18px;margin:0}.section-title span{font:10px var(--mono);color:var(--muted);text-transform:uppercase}.add-panel{margin-top:32px}.add-panel h2,.snippet-panel h2{padding:14px 14px 0}#custom-range{gap:5px;align-items:center}.footnote{text-align:center;color:#737373;font:10px var(--mono);margin-top:24px}[hidden]{display:none!important}@media(max-width:980px){.collection-grid{grid-template-columns:repeat(2,1fr)}.slide-grid{grid-template-columns:1fr}.tech-grid{grid-template-columns:1fr}.wrap{padding:0 20px}}@media(max-width:680px){header{padding-top:34px;align-items:flex-start;flex-direction:column}h1{font-size:31px}.cards,.grid,.site-form{grid-template-columns:1fr}.card{border-right:0;border-bottom:1px solid var(--line)}.card:last-child{border-bottom:0}.controls{justify-content:flex-start}.collection-grid{grid-template-columns:1fr}.collection-footer{align-items:flex-start;flex-direction:column}.cookie-config{grid-template-columns:1fr}.wrap{padding:0 14px}.app-nav{height:56px}}
 </style>
+<link rel="stylesheet" href="/slide-cookie-admin.css?v=20261105">
 <style>
 .sc-preview{margin-top:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#f7f7f7}.sc-preview-head{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;border-bottom:1px solid var(--line);font:10px var(--mono);color:var(--muted);letter-spacing:.06em;text-transform:uppercase}.sc-preview-stage{position:relative;min-height:330px;padding:20px;display:flex;align-items:center;justify-content:center;background:rgba(10,10,10,.55);backdrop-filter:blur(3px)}.sc-preview-dialog{width:min(100%,380px);padding:32px;background:#fff;border:1px solid rgba(10,10,10,.06);border-radius:22px;box-shadow:0 32px 64px rgba(10,10,10,.14)}.sc-preview-dialog h3{margin:0 0 10px;color:var(--sc-dark,#0a0a0a);font:600 22px/1.2 var(--display);letter-spacing:-.02em;text-align:center}.sc-preview-dialog p{margin:0 0 24px;color:#525252;font:14px/1.5 var(--font);text-align:center}.sc-preview-dialog a{color:#525252;text-decoration:underline;text-underline-offset:2px}.sc-preview-track{position:relative;height:60px;overflow:hidden;border-radius:999px;background:#f5f5f5;box-shadow:inset 0 0 0 1.5px #d4d4d4}.sc-preview-progress{position:absolute;top:5px;left:5px;width:50px;height:50px;border-radius:999px;background:var(--sc-accent,#c5ff1a)}.sc-preview-track-text{position:absolute;inset:0;padding-left:46px;display:flex;align-items:center;justify-content:center;color:#404040;font:500 14px var(--font);letter-spacing:-.01em}.sc-preview-knob{position:absolute;top:5px;left:5px;display:grid;place-items:center;width:50px;height:50px;border-radius:50%;background:var(--sc-dark,#0a0a0a);color:var(--sc-accent-text,#c5ff1a);box-shadow:0 6px 18px rgba(10,10,10,.18),0 1px 2px rgba(10,10,10,.12);font-size:20px}.sc-preview.is-off{opacity:.48}.sc-preview.is-off .sc-preview-stage:after{content:'Включите Slide Cookie для показа баннера';position:absolute;inset:auto 0 10px;text-align:center;font:10px var(--mono);color:#fff}
 .site-modal{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:20px;background:rgba(10,10,10,.44);backdrop-filter:blur(3px);opacity:0;transition:opacity .2s ease}.site-modal.is-open{opacity:1}.site-modal-card{width:min(100%,460px);padding:22px;border-radius:12px;background:#fff;box-shadow:0 24px 60px rgba(10,10,10,.22);transform:translateY(10px);transition:transform .22s ease}.site-modal.is-open .site-modal-card{transform:translateY(0)}.site-modal-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.site-modal-head h2{font-size:24px;margin:7px 0 0}.site-modal-close{width:28px;height:28px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--muted);font-size:21px;line-height:1}.site-modal-card>.muted{margin:14px 0 18px}.modal-field{display:grid;gap:6px;margin:12px 0;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#404040}.modal-field span{font:400 10px var(--font);letter-spacing:0;text-transform:none;color:var(--muted)}.site-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
@@ -209,27 +210,64 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
 </div>
 <div class="app-tab-panel" data-tab-panel="cookie" role="tabpanel" hidden>
 <section class="panel" id="slide-cookie-panel">
-  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Проверка слайдером и необязательное согласие на cookie.</div></div></div>
-  <div class="slide-grid"><div><label class="collection-item"><input type="checkbox" id="slide-cookie-enabled"><span><strong>Включить Slide Cookie</strong><span>Подключается одним сниппетом вместе со счётчиком.</span></span></label><div class="cookie-note">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a></p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Сдвиньте для согласия</span><span class="sc-preview-knob">→</span></div><div style="text-align:center;margin-top:14px;font-size:13px;line-height:1.6"><a href="#" style="color:#525252;text-decoration:underline;text-underline-offset:3px">Продолжить без аналитики</a></div></div></div></aside></div>
-  <div class="cookie-config" id="slide-cookie-config" hidden>
-    <label class="collection-item" style="grid-column:1 / -1"><input type="checkbox" id="slide-cookie-consent-enabled" checked><span><strong>Включить функционал cookie</strong>Текст согласия, политика, выбор посетителя и управление Метрикой. Снимите галочку, чтобы оставить только проверку слайдером.</span></label>
-    <label data-cookie-option>При отказе от cookie<select id="slide-reject-action"><option value="close">Сразу продолжить на сайт</option><option value="slider">Пройти слайдер и продолжить без cookie</option></select><span class="slide-key-hint">Отказ не включает аналитику. Проверка слайдером не означает согласие.</span></label>
-    <label data-cookie-option>Ссылка на политику<input id="slide-policy-url" type="text" inputmode="url" maxlength="2048" placeholder="/privacy или https://site.ru/privacy"></label>
-    <label data-cookie-option>ID Яндекс.Метрики <input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
-    <label data-cookie-option>Владелец этого сайта — оператор ПД<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"><span class="slide-key-hint">Реквизиты применяются только к выбранному сайту.</span></label>
-    <label data-cookie-option>Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
-    <label data-cookie-option>Email для отзыва и обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
-    <label data-cookie-option>Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" step="1" value="180"><span class="slide-key-hint">Выберите срок для вашего сайта. Изменение условий потребует нового согласия.</span></label>
-    <label data-cookie-option style="grid-column:1 / -1">Дополнительные условия согласия<textarea id="slide-consent-text" rows="4" maxlength="3000" placeholder="При необходимости: условия обработки и сроки, принятые оператором. Основной текст формируется автоматически."></textarea></label>
-    <label>Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
-    <label>Значение параметра<input id="slide-key" maxlength="128" placeholder="Например, google"><span class="slide-key-hint" id="slide-key-hint">Для «Всегда показывать» не требуется.</span></label>
-    <label>Акцент<input id="slide-accent-color" type="color" value="#C5FF1A"></label>
-    <label>Тёмный цвет<input id="slide-dark-color" type="color" value="#0A0A0A"></label>
-    <label>Цвет иконки<input id="slide-accent-text-color" type="color" value="#C5FF1A"></label>
-    <label data-cookie-option class="collection-item"><input type="checkbox" id="slide-block-metrika" checked disabled><span><strong>Метрика только после согласия</strong>Включается после сохранения выбора. Вебвизор и карта кликов выключены.</span></label>
-    <label class="collection-item"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить заново</strong>Сбрасывает сохранённое согласие и прохождение проверки.</span></label>
-  </div></div>
-  <div class="collection-footer" style="padding:0 16px 16px"><span class="collection-status" id="slide-cookie-status"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить Slide Cookie</button></div>
+  <div class="panel-header"><div><h2>Slide Cookie</h2><div class="muted">Настройте проверку посетителя, условие показа и работу с cookie.</div></div></div>
+  <div class="sc-layout">
+    <div class="sc-settings">
+      <label class="sc-check sc-main-toggle"><input type="checkbox" id="slide-cookie-enabled" aria-controls="slide-cookie-config"><span><strong>Включить Slide Cookie</strong><span class="sc-help">Проверка подключается вместе со счётчиком ClickShot.</span></span></label>
+      <div class="sc-config" id="slide-cookie-config" hidden>
+        <section class="sc-group" aria-labelledby="sc-mode-title">
+          <h3 id="sc-mode-title">Режим баннера</h3>
+          <label class="sc-check"><input type="checkbox" id="slide-cookie-consent-enabled" checked><span><strong>Запрашивать согласие на cookie</strong><span class="sc-help">С текстом согласия, политикой и возможностью отказа. Выключите, чтобы оставить только проверку слайдером.</span></span></label>
+          <label class="sc-field sc-title-field">Заголовок проверки<input id="slide-challenge-title" type="text" maxlength="120" value="Вы не робот?" placeholder="Вы не робот?" aria-describedby="slide-challenge-title-hint"><span class="sc-help" id="slide-challenge-title-hint">Для отдельной капчи и проверки после отказа от cookie. Пустое поле вернёт заголовок «Вы не робот?».</span></label>
+        </section>
+        <section class="sc-group" aria-labelledby="sc-trigger-title">
+          <h3 id="sc-trigger-title">Когда показывать</h3>
+          <div class="sc-fields">
+            <label class="sc-field">Параметр условия показа<select id="slide-param"><option value="always">Всегда показывать</option><option value="utm_source">UTM: источник</option><option value="utm_medium">UTM: канал</option><option value="utm_campaign">UTM: кампания</option><option value="utm_content">UTM: содержание</option><option value="utm_term">UTM: ключевое слово</option><option value="gclid">Google Ads (gclid)</option><option value="yclid">Яндекс Директ (yclid)</option><option value="fbclid">Meta Ads (fbclid)</option></select></label>
+            <label class="sc-field">Значение параметра<input id="slide-key" maxlength="128" placeholder="Например, rsya" aria-describedby="slide-key-hint"></label>
+          </div>
+          <p class="sc-help" id="slide-key-hint">Для «Всегда показывать» не требуется.</p>
+        </section>
+        <section class="sc-group" data-cookie-option aria-labelledby="sc-consent-title">
+          <h3 id="sc-consent-title">Cookie и согласие</h3>
+          <div class="sc-fields">
+            <label class="sc-field">При отказе от cookie<select id="slide-reject-action"><option value="close">Сразу продолжить на сайт</option><option value="slider">Пройти слайдер и продолжить без cookie</option></select><span class="sc-help">Проверка слайдером не означает согласие.</span></label>
+            <label class="sc-field">Срок согласия, дней<input id="slide-consent-days" type="number" min="1" max="365" step="1" value="180"><span class="sc-help">От 1 до 365 дней.</span></label>
+            <label class="sc-field sc-full">Ссылка на политику<input id="slide-policy-url" type="text" inputmode="url" maxlength="2048" placeholder="/privacy или https://site.ru/privacy"></label>
+          </div>
+          <h4>Владелец сайта — оператор ПД</h4>
+          <div class="sc-fields">
+            <label class="sc-field">Организация или ФИО<input id="slide-operator-name" maxlength="300" placeholder="ООО «Компания» или ФИО ИП"></label>
+            <label class="sc-field">Email для обращений<input id="slide-operator-email" type="email" maxlength="254" placeholder="privacy@site.ru"></label>
+            <label class="sc-field sc-full">Адрес оператора<input id="slide-operator-address" maxlength="500" placeholder="Адрес для обращений"></label>
+            <label class="sc-field sc-full"><span class="sc-field-caption">Дополнительные условия <span class="sc-optional">Необязательно</span></span><textarea id="slide-consent-text" rows="3" maxlength="3000" placeholder="Основной текст формируется автоматически. Здесь можно указать дополнительные условия и сроки обработки."></textarea></label>
+          </div>
+          <p class="sc-help">Реквизиты применяются только к выбранному сайту. Изменение условий потребует нового согласия.</p>
+        </section>
+        <section class="sc-group" aria-labelledby="sc-metrika-title">
+          <h3 id="sc-metrika-title">Яндекс.Метрика</h3>
+          <label class="sc-check"><input type="checkbox" id="slide-block-metrika" checked aria-describedby="slide-metrika-hint slide-metrika-warning"><span><strong>Метрика только после согласия</strong><span class="sc-help" id="slide-metrika-hint">ClickShot управляет запуском счётчика. Вебвизор и карта кликов выключены.</span></span></label>
+          <p id="slide-metrika-warning" class="sc-warning">Внимание: сбор персональных данных без необходимого согласия или другого законного основания нарушает требования законодательства. Снятие галочки не заменяет согласие; за основания обработки отвечает владелец сайта.</p>
+          <label class="sc-field sc-counter-field" data-cookie-option>ID Яндекс.Метрики<input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
+          <div class="cookie-note sc-help">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div>
+        </section>
+        <section class="sc-group" aria-labelledby="sc-appearance-title">
+          <h3 id="sc-appearance-title">Внешний вид</h3>
+          <div class="sc-colors">
+            <label class="sc-color-field"><input id="slide-accent-color" type="color" value="#C5FF1A"><span>Акцент</span></label>
+            <label class="sc-color-field"><input id="slide-dark-color" type="color" value="#0A0A0A"><span>Тёмный цвет</span></label>
+            <label class="sc-color-field"><input id="slide-accent-text-color" type="color" value="#C5FF1A"><span>Цвет иконки</span></label>
+          </div>
+        </section>
+        <section class="sc-group sc-reset-group" aria-labelledby="sc-reset-title">
+          <h3 id="sc-reset-title">Повторный запрос</h3>
+          <label class="sc-check"><input type="checkbox" id="slide-reset-consent"><span><strong>Запросить заново</strong><span class="sc-help">После сохранения посетители снова увидят баннер или проверку слайдером.</span></span></label>
+        </section>
+      </div>
+      <div class="collection-footer sc-actions"><span class="collection-status" id="slide-cookie-status" role="status" aria-live="polite"></span><button id="save-slide-cookie" class="fc-btn fc-btn-primary">Сохранить настройки</button></div>
+    </div>
+    <div class="sc-preview-side"><aside class="sc-preview" id="slide-preview" aria-label="Предпросмотр баннера Slide Cookie"><div class="sc-preview-head"><span>Предпросмотр · вид для посетителя</span><span id="slide-preview-state">выключен</span></div><div class="sc-preview-stage"><div class="sc-preview-dialog"><h3>Сайт использует cookie</h3><p>Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. Отказ не ограничивает доступ к сайту.<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a></p><div class="sc-preview-track"><span class="sc-preview-progress"></span><span class="sc-preview-track-text">Сдвиньте для согласия</span><span class="sc-preview-knob">→</span></div><div style="text-align:center;margin-top:14px;font-size:13px;line-height:1.6"><a href="#" style="color:#525252;text-decoration:underline;text-underline-offset:3px">Продолжить без аналитики</a></div></div></div></aside><p class="sc-preview-help">Предпросмотр обновляется при изменении настроек. На сайте они применятся после сохранения.</p></div>
+  </div>
 </section>
 </div>
 <p class="footnote">ClickShot Metrika · Агрегированная аналитика без пользовательских идентификаторов</p>
@@ -481,15 +519,21 @@ function updateSlidePreview(){
   if(!preview) return;
   const enabled = document.querySelector('#slide-cookie-enabled').checked;
   const cookies = document.querySelector('#slide-cookie-consent-enabled').checked;
+  const managed = document.querySelector('#slide-block-metrika').checked;
   document.querySelectorAll('[data-cookie-option]').forEach(el => { el.hidden = !cookies; });
-  document.querySelector('.cookie-note').hidden = !cookies;
+  document.querySelector('#slide-metrika-warning').hidden = managed;
+  document.querySelector('#slide-metrika-hint').textContent = managed ? 'ClickShot управляет запуском счётчика. Вебвизор и карта кликов выключены.' : 'Метрика подключается своим кодом на сайте. ClickShot не блокирует и не останавливает её.';
+  document.querySelector('.cookie-note').textContent = managed
+    ? (cookies ? 'Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.' : 'В режиме только слайдера согласие не запрашивается: Метрика останется заблокированной. Снимите галочку «Метрика только после согласия», чтобы использовать отдельно установленный счётчик.')
+    : 'ClickShot не подключает Метрику и не управляет её работой. Используйте обычный код счётчика на сайте. Отказ в баннере не остановит этот код.';
   const dialog = preview.querySelector('.sc-preview-dialog');
-  dialog.querySelector('h3').textContent = cookies ? 'Сайт использует cookie' : 'Проверка перед продолжением';
+  dialog.querySelector('h3').textContent = cookies ? 'Сайт использует cookie' : (document.querySelector('#slide-challenge-title').value.trim() || 'Вы не робот?');
   dialog.querySelector('p').innerHTML = cookies
-    ? 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. ' + (document.querySelector('#slide-reject-action').value === 'slider' ? 'При отказе потребуется проверка слайдером. После проверки доступ продолжится без сбора cookie для аналитики.' : 'Отказ не ограничивает доступ к сайту.') + '<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a>'
+    ? (managed ? 'Аналитика включится с вашего согласия. Проведите слайдер вправо, чтобы разрешить её. ' : 'Метрика на сайте работает независимо от вашего выбора в этом окне. Слайдер сохраняет согласие; отказ не остановит отдельно установленный счётчик. ') + (document.querySelector('#slide-reject-action').value === 'slider' ? (managed ? 'При отказе потребуется проверка слайдером. После проверки доступ продолжится без сбора cookie для аналитики.' : 'При отказе потребуется проверка слайдером.') : 'Отказ не ограничивает доступ к сайту.') + '<br><a href="#">Согласие на аналитику</a> · <a href="#">Политика обработки данных</a>'
     : 'Проведите слайдер вправо для продолжения.';
   dialog.querySelector('.sc-preview-track-text').textContent = cookies ? 'Сдвиньте для согласия' : 'Сдвиньте для продолжения';
   dialog.lastElementChild.hidden = !cookies;
+  dialog.lastElementChild.querySelector('a').textContent = managed ? 'Продолжить без аналитики' : 'Не принимать';
   preview.classList.toggle('is-off', !enabled);
   preview.style.setProperty('--sc-accent', document.querySelector('#slide-accent-color').value || '#C5FF1A');
   preview.style.setProperty('--sc-dark', document.querySelector('#slide-dark-color').value || '#0A0A0A');
@@ -515,6 +559,7 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-cookie-enabled').checked = !!c.enabled;
   document.querySelector('#slide-cookie-consent-enabled').checked = c.cookie_enabled !== false;
   document.querySelector('#slide-reject-action').value = c.reject_action || 'close';
+  document.querySelector('#slide-challenge-title').value = c.challenge_title || 'Вы не робот?';
   document.querySelector('#slide-policy-url').value = c.policy_url || '';
   for (const name of ['operator-name','operator-address','operator-email','consent-text']) document.querySelector('#slide-' + name).value = c[name.replaceAll('-', '_')] || '';
   document.querySelector('#slide-consent-days').value = c.consent_days || 180;
@@ -524,11 +569,11 @@ function renderSlideCookieSettings(){
   document.querySelector('#slide-accent-color').value = c.accent_color || '#C5FF1A';
   document.querySelector('#slide-dark-color').value = c.dark_color || '#0A0A0A';
   document.querySelector('#slide-accent-text-color').value = c.accent_text_color || '#C5FF1A';
-  document.querySelector('#slide-block-metrika').checked = true;
+  document.querySelector('#slide-block-metrika').checked = c.block_metrika !== false;
   document.querySelector('#slide-reset-consent').checked = false;
   document.querySelector('#slide-cookie-config').hidden = !c.enabled;
   document.querySelector('#slide-cookie-status').classList.remove('is-error');
-  document.querySelector('#slide-cookie-status').textContent = c.enabled ? (c.cookie_enabled === false ? 'Только проверка слайдером. Метрика выключена.' : (c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
+  document.querySelector('#slide-cookie-status').textContent = c.enabled ? (c.block_metrika === false ? 'Метрика подключается отдельно и работает независимо от баннера.' : c.cookie_enabled === false ? 'Только проверка слайдером. Метрика выключена.' : (c.operator_name && c.operator_address && c.operator_email && c.ym_counter) ? 'Версия согласия: ' + (c.version || 1) : 'Заполните оператора, адрес, email и ID Метрики: до этого доступен только отказ.') : 'Slide Cookie выключен.';
   syncSlideParamField();
   updateSlidePreview();
 }
@@ -694,6 +739,8 @@ document.querySelector('#slide-cookie-enabled').addEventListener('change', (e) =
 });
 
 document.querySelector('#slide-cookie-consent-enabled').addEventListener('change', updateSlidePreview);
+document.querySelector('#slide-challenge-title').addEventListener('input', updateSlidePreview);
+document.querySelector('#slide-block-metrika').addEventListener('change', updateSlidePreview);
 document.querySelector('#slide-reject-action').addEventListener('change', updateSlidePreview);
 
 document.querySelector('#slide-param').addEventListener('change', syncSlideParamField);
@@ -710,12 +757,13 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
   const slide_cookie = {
     enabled: document.querySelector('#slide-cookie-enabled').checked,
     cookie_enabled: document.querySelector('#slide-cookie-consent-enabled').checked,
+    challenge_title: document.querySelector('#slide-challenge-title').value.trim(),
     reject_action: document.querySelector('#slide-reject-action').value,
     policy_url: document.querySelector('#slide-policy-url').value.trim(),
     param: document.querySelector('#slide-param').value.trim() || 'always',
     key: document.querySelector('#slide-key').value.trim(),
     ym_counter: document.querySelector('#slide-ym-counter').value.replace(/\s+/g, ''),
-    block_metrika: true,
+    block_metrika: document.querySelector('#slide-block-metrika').checked,
     operator_name: document.querySelector('#slide-operator-name').value.trim(),
     operator_address: document.querySelector('#slide-operator-address').value.trim(),
     operator_email: document.querySelector('#slide-operator-email').value.trim(),
