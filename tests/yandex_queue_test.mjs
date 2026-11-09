@@ -20,8 +20,12 @@ for (const order of ['before-snippet', 'queued-init', 'loaded-sdk']) {
   if (order === 'queued-init') snippet();
   if (order === 'loaded-sdk') window.ym = function(...args){calls.push(args);return 'forwarded';};
   const original = window.ym;
+  const descriptor = Object.getOwnPropertyDescriptor(window, 'ym');
   vm.runInContext(source, context);
   await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(window.ym, original, 'ClickShot must not replace ym');
+  assert.deepEqual(Object.getOwnPropertyDescriptor(window, 'ym'), descriptor,
+    'ClickShot must not install a global assignment hook');
   if (order === 'before-snippet') snippet();
   if (order !== 'loaded-sdk') {
     assert.equal(window.ym.a?.[0]?.[1], 'init', order + ': SDK must see queued init');
@@ -37,6 +41,10 @@ for (const order of ['before-snippet', 'queued-init', 'loaded-sdk']) {
   assert.equal(calls.filter(args=>args[2]==='form_sent').length, 1);
   await new Promise(resolve=>setImmediate(resolve));
   const payloads = await Promise.all(events.map(async blob=>JSON.parse(await blob.text())));
-  assert.equal(payloads.filter(event=>event.event==='form_sent').length, 1);
-  console.log('PASS Yandex queue and goal forwarding: ' + order);
+  assert.equal(payloads.filter(event=>event.event==='form_sent' || event.event==='queued_goal').length, 0,
+    'Yandex goals must never be copied to ClickShot');
+  await window.ClickShotMetrika.goal('own_goal');
+  const ownPayloads = await Promise.all(events.map(async blob=>JSON.parse(await blob.text())));
+  assert.equal(ownPayloads.filter(event=>event.event==='own_goal').length, 1);
+  console.log('PASS Independent Yandex function, queue and goals: ' + order);
 }

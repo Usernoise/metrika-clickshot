@@ -114,14 +114,9 @@ try {
   const goal = JSON.parse(await beacons[1].text());
   check('Goal carries only the referrer origin without path or query',goal.referrer==='https://search.example/',goal);
   check('sendBeacon false triggers fetch fallback',fetches>0,{beacons:beacons.length,fetches,visitMarked:storage.has('clickshot-metrika:audit_site:started')});
+  const beforeYandexGoal = beacons.length;
   await context.window.ym(12345, 'reachGoal', 'metrika_goal');
-  const bridged = JSON.parse(await beacons.at(-1).text());
-  check('Existing Yandex reachGoal is collected without a second call',bridged.event === 'metrika_goal',bridged);
-  context.window.__clickShotSuppressYandexGoalBridge = 1;
-  const beforeSuppressed = beacons.length;
-  await context.window.ym(12345, 'reachGoal', 'cookie_consent_shown');
-  check('Slide Cookie Yandex forwarding does not duplicate its event',beacons.length === beforeSuppressed,{before:beforeSuppressed,after:beacons.length});
-  context.window.__clickShotSuppressYandexGoalBridge = 0;
+  check('Yandex goals are not copied to ClickShot',beacons.length === beforeYandexGoal,{before:beforeYandexGoal,after:beacons.length});
   const disabledStorage = new Map();
   context.window.__clickShotBootstrap.collection={visits:false,pages:false,referrers:false};
   context.sessionStorage={getItem:k=>disabledStorage.get(k),setItem:(k,v)=>disabledStorage.set(k,v)};
@@ -146,7 +141,7 @@ try {
   assignmentContext.window.ym(12345, 'reachGoal', 'assigned_goal');
   await new Promise(resolve => setTimeout(resolve, 0));
   const assignedEvents = await Promise.all(assigned.map(blob => blob.text().then(text => JSON.parse(text))));
-  check('Yandex goal immediately after ym assignment is collected',assignedEvents.some(event => event.event === 'assigned_goal'),assignedEvents);
+  check('Later Yandex assignments remain independent',!assignedEvents.some(event => event.event === 'assigned_goal'),assignedEvents);
   const elements = new Map();
   const element = key => {
     if (!elements.has(key)) elements.set(key,{value:'',style:{},textContent:'',innerHTML:''});
