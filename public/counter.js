@@ -168,11 +168,15 @@
       }
     };
     const makeWrappedYm = original => {
-      const wrapped = function (...args) {
-        const result = original.apply(this, args);
-        try { bridgeYandexGoal(args); } catch (_) {}
-        return result;
-      };
+      // tag.js reads the snippet's pending init from ym.a. Proxy the function
+      // so its queue, timestamp and subsequent property writes stay shared.
+      const wrapped = new Proxy(original, {
+        apply(target, thisArg, args) {
+          const result = Reflect.apply(target, thisArg, args);
+          try { bridgeYandexGoal(args); } catch (_) {}
+          return result;
+        },
+      });
       wrappedYm.add(wrapped);
       return wrapped;
     };

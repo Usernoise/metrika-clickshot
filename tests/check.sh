@@ -5,6 +5,7 @@ for source in lib.php consent.php config.php installation.php bin/*.php public/*
   php -l "$source" >/dev/null
 done
 node --check public/counter.js
+node tests/yandex_queue_test.mjs
 node --check public/slide-cookie.js
 node --check public/admin-theme-neu.js
 node -e 'const fs=require("fs"),vm=require("vm");for(const m of fs.readFileSync("public/index.php","utf8").matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(m[1]);'
