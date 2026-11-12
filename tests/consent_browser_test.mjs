@@ -34,7 +34,7 @@ const mockTag = `window.fixtureYandexCalls=(window.ym.a||[]).map(args=>Array.fro
 window.ym=function(...args){window.fixtureYandexCalls.push(args)};
 document.cookie='_ym_uid=fixture-only; Path=/';try{localStorage.setItem('_ym_uid','fixture-only')}catch(_){}`;
 async function setup(options = {}) {
-  const context = await browser.newContext({...(options.admin ? {httpCredentials:{username:'admin',password:'browser-test-only'}} : {}),viewport:options.mobile ? {width:375,height:740} : {width:1280,height:900}});
+  const context = await browser.newContext({...(options.storageState ? {storageState:options.storageState} : {}),...(options.admin ? {httpCredentials:{username:'admin',password:'browser-test-only'}} : {}),viewport:options.mobile ? {width:375,height:740} : {width:1280,height:900}});
   const external = [], hits = [], errors = [];
   await context.route('**/*',async route=>{
     const url = new URL(route.request().url());
@@ -56,6 +56,10 @@ async function setup(options = {}) {
   if (options.noStorage) await context.addInitScript(()=>{
     for (const name of ['localStorage','sessionStorage']) Object.defineProperty(window,name,{get(){throw new Error('storage unavailable')}});
   });
+  if (options.timeOffset) await context.addInitScript(offset=>{
+    const realNow = Date.now.bind(Date);
+    Date.now = () => realNow() + offset;
+  },options.timeOffset);
   const page = await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));
   return {context,page,external,hits,errors,options};
@@ -380,6 +384,30 @@ try {
   assert.equal(await test.page.getByRole('dialog').count(),0);
   assert.equal(test.external.length,0);
   assert.equal(test.errors.length,0,test.errors.join('\n'));
+  const passRecord = await test.page.evaluate(()=>{
+    const key = Object.keys(localStorage).find(key=>key.includes(':challenge:') && key.endsWith(':only'));
+    return {key,expiresAt:Number(localStorage.getItem(key)),now:Date.now()};
+  });
+  const week = 7*24*60*60*1000;
+  assert.ok(passRecord.expiresAt-passRecord.now > week-10000 && passRecord.expiresAt-passRecord.now <= week);
+  const persistedPass = await test.context.storageState();
+  await test.page.close();
+  test.page = await test.context.newPage();
+  await ready(test.page);
+  assert.equal(await test.page.getByRole('dialog').count(),0,'Closing the tab and opening another retains completion');
+  assert.equal(await test.page.evaluate(key=>Number(localStorage.getItem(key)),passRecord.key),passRecord.expiresAt,'Visits never extend the seven-day deadline');
+  const later = await setup({storageState:persistedPass,timeOffset:6*24*60*60*1000});
+  await ready(later.page);
+  assert.equal(await later.page.getByRole('dialog').count(),0,'Browser restart retains completion on day six');
+  await later.context.close();
+  const expired = await setup({storageState:persistedPass,timeOffset:week+1000});
+  await ready(expired.page);
+  await expired.page.getByRole('slider').waitFor();
+  await expired.page.getByRole('slider').press('Enter');
+  await expired.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.ok(await expired.page.evaluate(({key,old})=>Number(localStorage.getItem(key))>old,{key:passRecord.key,old:passRecord.expiresAt}),'Passing again renews the deadline');
+  await expired.context.close();
+  record('Challenge persists across tabs and browser restart for seven days, expires, and renews only on completion');
   const reset = await test.context.request.put(origin+'/api/sites.php',{data:{id:'browser_site',slide_cookie:{reset_consent:true}}});
   assert.equal(reset.status(),200,await reset.text());
   await ready(test.page);
@@ -388,7 +416,7 @@ try {
   await test.page.getByRole('slider').press('Enter');
   await test.page.getByRole('dialog').waitFor({state:'detached'});
   assert.equal(await test.page.evaluate(()=>window.ClickShotConsent.getState().analytics),false);
-  record('Standalone slider saves without cookie details, supports dragging, persists per tab and never enables Metrika');
+  record('Standalone slider saves without cookie details, supports dragging, persists for seven days, resets by settings version and never enables Metrika');
   await test.context.close();
 
   // With blocking disabled, leave the site's own tag, queue and storage alone.

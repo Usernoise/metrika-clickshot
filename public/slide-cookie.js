@@ -11,8 +11,13 @@
     // Unchecked: leave the site's own Metrika installation entirely independent.
     const manageMetrika = CONFIG.BLOCK_METRIKA !== false;
     const challengeKey = CONFIG.STORAGE_KEY + ':challenge:' + (CONFIG.DOCUMENT?.version || 1) + ':' + (cookieEnabled ? 'refusal' : 'only');
+    const CHALLENGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
     let challengePassed = false;
-    try { challengePassed = sessionStorage.getItem(challengeKey) === 'passed'; } catch (_) {}
+    try {
+        const expiresAt = Number(localStorage.getItem(challengeKey));
+        const now = Date.now();
+        challengePassed = Number.isFinite(expiresAt) && expiresAt > now && expiresAt <= now + CHALLENGE_TTL_MS;
+    } catch (_) {}
     function needsChallenge() { return !challengePassed && (!cookieEnabled || (CONFIG.REJECT_ACTION === 'slider' && current(choice) && choice.decision !== 'granted')); }
     const endpoint = CONFIG.SITE_ID && script && script.src
         ? new URL('/api/consent.php?site=' + encodeURIComponent(CONFIG.SITE_ID), script.src).href : '';
@@ -762,7 +767,7 @@
             try {
                 if (elements.challenge) {
                     challengePassed = true;
-                    try { sessionStorage.setItem(challengeKey, 'passed'); } catch (_) {}
+                    try { localStorage.setItem(challengeKey, String(Date.now() + CHALLENGE_TTL_MS)); } catch (_) {}
                 } else if (!await grant(method)) return;
                 if (elements.closing) return;
                 accepted = true;
