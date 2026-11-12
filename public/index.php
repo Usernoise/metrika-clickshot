@@ -248,7 +248,8 @@ header { position:relative; margin:0 -36px; padding:50px 36px 32px; align-items:
           <h3 id="sc-metrika-title">Яндекс.Метрика</h3>
           <label class="sc-check"><input type="checkbox" id="slide-block-metrika" checked aria-describedby="slide-metrika-hint slide-metrika-warning"><span><strong>Метрика только после согласия</strong><span class="sc-help" id="slide-metrika-hint">ClickShot управляет запуском счётчика. Вебвизор и карта кликов выключены.</span></span></label>
           <p id="slide-metrika-warning" class="sc-warning">Внимание: сбор персональных данных без необходимого согласия или другого законного основания нарушает требования законодательства. Снятие галочки не заменяет согласие; за основания обработки отвечает владелец сайта.</p>
-          <label class="sc-field sc-counter-field" data-cookie-option>ID Яндекс.Метрики<input id="slide-ym-counter" inputmode="numeric" maxlength="20" placeholder="12345678"></label>
+          <label class="sc-field sc-counter-field">Номер счётчика Яндекс Метрики<input id="slide-ym-counter" inputmode="numeric" maxlength="15" placeholder="12345678" aria-describedby="slide-ym-goals-hint"></label>
+          <p class="sc-help" id="slide-ym-goals-hint">Цели капчи: slider_challenge_shown, slider_challenge_started, slider_challenge_passed. Укажите номер счётчика, в котором созданы эти цели. Пустое поле отключает их отправку в Метрику.</p>
           <div class="cookie-note sc-help">Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.</div>
         </section>
         <section class="sc-group" aria-labelledby="sc-appearance-title">
@@ -525,7 +526,7 @@ function updateSlidePreview(){
   document.querySelector('#slide-metrika-hint').textContent = managed ? 'ClickShot управляет запуском счётчика. Вебвизор и карта кликов выключены.' : 'Метрика подключается своим кодом на сайте. ClickShot не блокирует и не останавливает её.';
   document.querySelector('.cookie-note').textContent = managed
     ? (cookies ? 'Укажите ID Метрики и оставьте на сайте только сниппет ClickShot. Удалите обычный код Метрики, её статические теги и пиксели: ClickShot сам загрузит счётчик после согласия.' : 'В режиме только слайдера согласие не запрашивается: Метрика останется заблокированной. Снимите галочку «Метрика только после согласия», чтобы использовать отдельно установленный счётчик.')
-    : 'ClickShot не подключает Метрику и не управляет её работой. Используйте обычный код счётчика на сайте. Отказ в баннере не остановит этот код.';
+    : 'ClickShot не подключает Метрику и не управляет её работой. Установите обычный код указанного счётчика перед кодом ClickShot, чтобы учитывать показ и прохождение капчи. Отказ в баннере не остановит этот код.';
   const dialog = preview.querySelector('.sc-preview-dialog');
   dialog.querySelector('h3').textContent = cookies ? 'Сайт использует cookie' : (document.querySelector('#slide-challenge-title').value.trim() || 'Вы не робот?');
   dialog.querySelector('p').innerHTML = cookies
@@ -777,7 +778,7 @@ document.querySelector('#save-slide-cookie').addEventListener('click', async () 
   };
   // Ignore unfinished edits in the hidden cookie section; keep its saved settings.
   if (!slide_cookie.cookie_enabled) {
-    for (const key of ['policy_url', 'ym_counter', 'operator_name', 'operator_address', 'operator_email', 'consent_text', 'consent_days', 'reject_action']) delete slide_cookie[key];
+    for (const key of ['policy_url', 'operator_name', 'operator_address', 'operator_email', 'consent_text', 'consent_days', 'reject_action']) delete slide_cookie[key];
   }
   button.disabled = true; status.textContent = 'Сохраняем…'; status.classList.remove('is-error');
   try {

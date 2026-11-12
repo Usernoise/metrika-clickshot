@@ -77,9 +77,14 @@
         } finally { clearTimeout(timeout); }
     }
     function trackGoal(name) {
-        // Banner aggregates stay in ClickShot. Nothing is replayed into Yandex.
+        // Keep ClickShot aggregates; mirror only live challenge events to Yandex.
         if (window.ClickShotMetrika?.goal) window.ClickShotMetrika.goal(name);
         else (window.__clickShotPendingGoals = window.__clickShotPendingGoals || []).push(name);
+        if (!['slider_challenge_shown', 'slider_challenge_started', 'slider_challenge_passed'].includes(name)) return;
+        if (manageMetrika && (!allowed() || !sdkStarted)) return;
+        if (!/^[1-9][0-9]{0,14}$/.test(String(CONFIG.YM_COUNTER || '')) || typeof window.ym !== 'function') return;
+        // A failed external counter must never interrupt the challenge.
+        try { window.ym(Number(CONFIG.YM_COUNTER), 'reachGoal', name); } catch (_) {}
     }
     function startAnalytics() {
         if (!manageMetrika || !allowed() || sdkStarted || !CONFIG.READY) return;
@@ -799,13 +804,14 @@
             setImportant(progress, 'transition', 'none');
         }
 
+        function trackStarted() {
+            if (startedTracked) return;
+            startedTracked = true;
+            trackGoal(elements.challenge ? 'slider_challenge_started' : 'cookie_consent_started');
+        }
+
         function onStart(e) {
             if (accepted || isDragging || pendingRequest || (!elements.challenge && !CONFIG.READY)) return;
-
-            if (!startedTracked) {
-                startedTracked = true;
-                trackGoal(elements.challenge ? 'slider_challenge_started' : 'cookie_consent_started');
-            }
 
             const x = clientXOf(e);
             if (x === null) return;
@@ -821,6 +827,7 @@
             // чтобы после драга работали клавиатурные стрелки
             e.preventDefault();
             try { slider.focus({ preventScroll: true }); } catch (err) {}
+            trackStarted();
             beginDrag(x);
 
             if (supportsPointer && e.pointerId !== undefined) {
@@ -923,6 +930,7 @@
 
         function onSliderKeydown(e) {
             if (accepted || pendingRequest) return;
+            if (['ArrowRight', 'ArrowUp', 'ArrowLeft', 'ArrowDown', 'Home', 'End', 'Enter', ' ', 'Spacebar'].includes(e.key)) trackStarted();
             switch (e.key) {
                 case 'ArrowRight':
                 case 'ArrowUp':

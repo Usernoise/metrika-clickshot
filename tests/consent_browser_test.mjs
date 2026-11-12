@@ -353,9 +353,14 @@ try {
   await test.page.locator('#site').selectOption('browser_site');
   await test.page.waitForFunction(()=>!document.querySelector('#slide-cookie-consent-enabled').checked);
   assert.equal(await test.page.locator('#slide-policy-url').isVisible(),false);
+  assert.equal(await test.page.locator('#slide-ym-counter').isVisible(),true);
+  await test.page.locator('#slide-ym-counter').fill('54321');
   assert.ok((await test.page.locator('.sc-preview-dialog').innerText()).includes('Проведите слайдер вправо для продолжения'));
   await test.page.locator('#save-slide-cookie').click();
   await test.page.locator('#slide-cookie-status').filter({hasText:'Сохранено'}).waitFor();
+  await test.page.reload();
+  await test.page.locator('[data-neu-tab="cookie"]').click();
+  await test.page.waitForFunction(()=>document.querySelector('#slide-ym-counter').value === '54321');
   test.external.length = 0; // Discard the admin page's font request.
   await ready(test.page);
   await test.page.getByRole('dialog').waitFor();
@@ -424,8 +429,49 @@ try {
   assert.equal(await test.page.evaluate(()=>window.ClickShotConsent.getState().analytics),false,'Standalone challenge must not grant consent');
   assert.equal(test.external.length,1);
   assert.equal(test.errors.length,0,test.errors.join('\n'));
-  record('Unchecked blocking also allows an independent Metrika installation in standalone captcha mode');
+  assert.deepEqual(await test.page.evaluate(()=>window.fixtureYandexCalls.filter(args=>args[1]==='reachGoal' && args[2].startsWith('slider_challenge_'))), [
+    [12345,'reachGoal','slider_challenge_shown'],
+    [12345,'reachGoal','slider_challenge_started'],
+    [12345,'reachGoal','slider_challenge_passed'],
+  ],'Keyboard challenge sends all three goals exactly once to the configured counter');
+  record('Independent standalone captcha sends shown, started and passed goals to Yandex');
   await test.context.close();
+
+  // A different configured target is respected; failures cannot block completion.
+  php("db()->exec(\"UPDATE site_collection_settings SET slide_cookie_ym_counter='54321' WHERE site_id='browser_site'\");");
+  test = await setup();
+  await ready(test.page,'?mode=attribute');
+  await test.page.waitForFunction(()=>window.fixtureYandexCalls?.some(args=>args[2]==='slider_challenge_shown'));
+  const goalKnob = await test.page.getByRole('slider').boundingBox();
+  await test.page.mouse.move(goalKnob.x+goalKnob.width/2,goalKnob.y+goalKnob.height/2);
+  await test.page.mouse.down();
+  await test.page.mouse.move(goalKnob.x+goalKnob.width/2+250,goalKnob.y+goalKnob.height/2,{steps:12});
+  await test.page.mouse.up();
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.deepEqual(await test.page.evaluate(()=>window.fixtureYandexCalls.filter(args=>args[1]==='reachGoal' && args[2].startsWith('slider_challenge_'))), [
+    [54321,'reachGoal','slider_challenge_shown'],
+    [54321,'reachGoal','slider_challenge_started'],
+    [54321,'reachGoal','slider_challenge_passed'],
+  ]);
+  await test.context.close();
+  test = await setup();
+  await ready(test.page,'?mode=attribute');
+  await test.page.waitForFunction(()=>window.fixtureYandexCalls);
+  await test.page.evaluate(()=>{window.ym=()=>{throw new Error('Unavailable counter')};});
+  await test.page.getByRole('slider').press('Enter');
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.equal(test.errors.length,0);
+  await test.context.close();
+  php("db()->exec(\"UPDATE site_collection_settings SET slide_cookie_ym_counter='' WHERE site_id='browser_site'\");");
+  test = await setup();
+  await ready(test.page,'?mode=attribute');
+  await test.page.waitForFunction(()=>window.fixtureYandexCalls);
+  await test.page.getByRole('slider').press('Enter');
+  await test.page.getByRole('dialog').waitFor({state:'detached'});
+  assert.equal(await test.page.evaluate(()=>window.fixtureYandexCalls.filter(args=>args[2]?.startsWith('slider_challenge_')).length),0);
+  await test.context.close();
+  php("db()->exec(\"UPDATE site_collection_settings SET slide_cookie_ym_counter='12345' WHERE site_id='browser_site'\");");
+  record('Pointer goals respect the configured counter; blank ID disables delivery and SDK errors do not block the slider');
 
   test = await setup({admin:true});
   const customTitle = 'Проверка «Человек?» <img src=x onerror=alert(1)>';
